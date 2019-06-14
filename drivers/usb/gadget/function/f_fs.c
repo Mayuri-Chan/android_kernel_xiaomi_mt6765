@@ -3867,7 +3867,6 @@ static void ffs_closed(struct ffs_data *ffs)
 	if (test_bit(FFS_FL_BOUND, &ffs->flags))
 		unregister_gadget_item(opts->
 			       func_inst.group.cg_item.ci_parent->ci_parent);
-
 	return;
 done:
 	ffs_dev_unlock();
