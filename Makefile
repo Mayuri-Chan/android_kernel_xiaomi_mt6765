@@ -1,6 +1,6 @@
 VERSION = 4
 PATCHLEVEL = 9
-SUBLEVEL = 81
+SUBLEVEL = 82
 EXTRAVERSION =
 export LOCALVERSION="-LordExtended-v3.0"
 NAME = Roaring Lionus
