@@ -17,7 +17,7 @@ steps:
     cd ak3
     zip -r9 cherrykernel-cereus-$(Build.SourceBranchName).zip *
     cp cherrykernel-cereus-$(Build.SourceBranchName).zip ../cherrykernel-cereus-$(Build.SourceBranchName).zip
-  displayName: 'Compile Cherry Kernel 6 $(Build.SourceBranchName)'
+  displayName: 'Compile Cherry Kernel for Redmi 6 $(Build.SourceBranchName)'
 - task: CopyFiles@2
   inputs:
     contents: 'cherrykernel-cereus-$(Build.SourceBranchName).zip'
