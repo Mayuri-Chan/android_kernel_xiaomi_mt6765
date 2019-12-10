@@ -7,10 +7,10 @@ steps:
 - script: |
     sudo apt install bc
     git clone https://github.com/myst33d/AnyKernel3 ak3
-    wget https://releases.linaro.org/components/toolchain/binaries/latest-4/arm-linux-gnueabihf/gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabihf.tar.xz
-    tar -xJvf gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabihf.tar.xz
-    rm gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabihf.tar.xz
-    mv gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabihf linaro
+    wget https://releases.linaro.org/components/toolchain/binaries/latest-6/arm-linux-gnueabihf/gcc-linaro-6.5.0-2018.12-x86_64_arm-linux-gnueabihf.tar.xz
+    tar -xJvf gcc-linaro-6.5.0-2018.12-x86_64_arm-linux-gnueabihf.tar.xz
+    rm gcc-linaro-6.5.0-2018.12-x86_64_arm-linux-gnueabihf.tar.xz
+    mv gcc-linaro-6.5.0-2018.12-x86_64_arm-linux-gnueabihf linaro
     make O=out CROSS_COMPILE=$(pwd)/linaro/bin/arm-linux-gnueabihf- SUBARCH=arm ARCH=arm -j$(nproc --all) cactus_defconfig
     make O=out CROSS_COMPILE=$(pwd)/linaro/bin/arm-linux-gnueabihf- SUBARCH=arm ARCH=arm -j$(nproc --all)
     cp out/arch/arm/boot/zImage-dtb ak3/zImage-dtb
