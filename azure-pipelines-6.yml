@@ -1,0 +1,30 @@
+trigger: none
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+- script: |
+    sudo apt install bc
+    git clone https://github.com/myst33d/AnyKernel3 ak3
+    wget https://releases.linaro.org/components/toolchain/binaries/latest-7/arm-linux-gnueabihf/gcc-linaro-7.5.0-2019.12-x86_64_arm-linux-gnueabihf.tar.xz
+    tar -xJvf gcc-linaro-7.5.0-2019.12-x86_64_arm-linux-gnueabihf.tar.xz
+    rm gcc-linaro-7.5.0-2019.12-x86_64_arm-linux-gnueabihf.tar.xz
+    mv gcc-linaro-7.5.0-2019.12-x86_64_arm-linux-gnueabihf linaro
+    make O=out CROSS_COMPILE=$(pwd)/linaro/bin/arm-linux-gnueabihf- SUBARCH=arm ARCH=arm -j$(nproc --all) cereus_defconfig
+    make O=out CROSS_COMPILE=$(pwd)/linaro/bin/arm-linux-gnueabihf- SUBARCH=arm ARCH=arm -j$(nproc --all)
+    cp out/arch/arm/boot/zImage-dtb ak3/zImage-dtb
+    cd ak3
+    zip -r9 cherrykernel-cereus-$(Build.SourceBranchName).zip *
+    cp cherrykernel-$(Build.SourceBranchName).zip ../cherrykernel-cereus-$(Build.SourceBranchName).zip
+  displayName: 'Compile Cherry Kernel 6 $(Build.SourceBranchName)'
+- task: CopyFiles@2
+  inputs:
+    contents: 'cherrykernel-cereus-$(Build.SourceBranchName).zip'
+    targetFolder: $(Build.ArtifactStagingDirectory)
+  displayName: 'Copy kernel to artifacts folder'
+- task: PublishBuildArtifacts@1
+  inputs:
+    pathToPublish: $(Build.ArtifactStagingDirectory)
+    artifactName: cherrykernel-cereus-$(Build.SourceBranchName)
+  displayName: 'Upload kernel'
