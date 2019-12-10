@@ -17,7 +17,7 @@ steps:
     cd ak3
     zip -r9 cherrykernel-cactus-$(Build.SourceBranchName).zip *
     cp cherrykernel-cactus-$(Build.SourceBranchName).zip ../cherrykernel-cactus-$(Build.SourceBranchName).zip
-  displayName: 'Compile Cherry Kernel 6A $(Build.SourceBranchName)'
+  displayName: 'Compile Cherry Kernel for Redmi 6A $(Build.SourceBranchName)'
 - task: CopyFiles@2
   inputs:
     contents: 'cherrykernel-cactus-$(Build.SourceBranchName).zip'
