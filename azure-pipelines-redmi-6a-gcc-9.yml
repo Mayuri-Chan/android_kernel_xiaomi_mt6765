@@ -7,9 +7,9 @@ steps:
 - script: |
     sudo apt install bc
     git clone https://github.com/myst33d/AnyKernel3 -b cactus ak3
-    sudo echo "deb http://ftp.debian.org/debian experimental main contrib non-free" >> /etc/apt/source.list
+    echo "deb http://ftp.debian.org/debian sid main" | sudo tee -a /etc/apt/sources.list
     sudo apt update
-    sudo apt install gcc-10-arm-linux-gnueabihf
+    sudo apt install gcc-arm-linux-gnueabihf
     make O=out CROSS_COMPILE=arm-linux-gnueabihf- SUBARCH=arm ARCH=arm -j$(nproc --all) cactus_defconfig
     make O=out CROSS_COMPILE=arm-linux-gnueabihf- SUBARCH=arm ARCH=arm -j$(nproc --all)
     cp out/arch/arm/boot/zImage-dtb ak3/zImage-dtb
