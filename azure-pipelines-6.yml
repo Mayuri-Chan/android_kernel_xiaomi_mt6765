@@ -6,7 +6,7 @@ pool:
 steps:
 - script: |
     sudo apt install bc
-    git clone https://github.com/myst33d/AnyKernel3 ak3
+    git clone https://github.com/myst33d/AnyKernel3 -b cereus ak3
     wget https://releases.linaro.org/components/toolchain/binaries/latest-7/arm-linux-gnueabihf/gcc-linaro-7.5.0-2019.12-x86_64_arm-linux-gnueabihf.tar.xz
     tar -xJvf gcc-linaro-7.5.0-2019.12-x86_64_arm-linux-gnueabihf.tar.xz
     rm gcc-linaro-7.5.0-2019.12-x86_64_arm-linux-gnueabihf.tar.xz
