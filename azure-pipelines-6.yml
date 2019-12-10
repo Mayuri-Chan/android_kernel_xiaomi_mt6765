@@ -16,7 +16,7 @@ steps:
     cp out/arch/arm/boot/zImage-dtb ak3/zImage-dtb
     cd ak3
     zip -r9 cherrykernel-cereus-$(Build.SourceBranchName).zip *
-    cp cherrykernel-$(Build.SourceBranchName).zip ../cherrykernel-cereus-$(Build.SourceBranchName).zip
+    cp cherrykernel-cereus-$(Build.SourceBranchName).zip ../cherrykernel-cereus-$(Build.SourceBranchName).zip
   displayName: 'Compile Cherry Kernel 6 $(Build.SourceBranchName)'
 - task: CopyFiles@2
   inputs:
