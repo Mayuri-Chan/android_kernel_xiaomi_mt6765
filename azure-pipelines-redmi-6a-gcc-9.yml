@@ -5,7 +5,7 @@ pool:
 
 steps:
 - script: |
-    sudo apt install bc
+    sudo apt install bc tee
     git clone https://github.com/myst33d/AnyKernel3 -b cactus ak3
     echo "deb http://ftp.debian.org/debian sid main" | sudo tee -a /etc/apt/sources.list
     sudo apt update
