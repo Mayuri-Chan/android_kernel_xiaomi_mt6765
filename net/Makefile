@@ -5,7 +5,7 @@
 # Rewritten to use lists instead of if-statements.
 #
 
-subdir-ccflags-y += -Werror
+subdir-ccflags-y += -Wall
 
 obj-$(CONFIG_NET)		:= socket.o core/
 
