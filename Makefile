@@ -2,7 +2,7 @@ VERSION = 4
 PATCHLEVEL = 9
 SUBLEVEL = 119
 EXTRAVERSION =
-export LOCALVERSION = "-cherry"
+export LOCALVERSION = "-cherrykernel-stable"
 NAME = Roaring Lionus
 
 # *DOCUMENTATION*
