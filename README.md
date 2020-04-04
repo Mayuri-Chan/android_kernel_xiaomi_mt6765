@@ -1,3 +1,5 @@
+![Cactus Badges](https://github.com/wulan17/android_kernel_xiaomi_mt6765/workflows/Cactus/badge.svg) ![Cereus Badges](https://github.com/wulan17/android_kernel_xiaomi_mt6765/workflows/Cereus/badge.svg)
+
         Linux kernel release 4.x <http://kernel.org/>
 
 These are the release notes for Linux version 4.  Read them carefully,
