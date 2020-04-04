@@ -11,6 +11,7 @@ export LOCALVERSION="-wulan17"
 export tc_repo="https://github.com/wulan17/linaro_arm-linux-gnueabihf-7.5.git"
 export tc_name="arm-linux-gnueabihf"
 export tc_v="7.5"
+export branch="$(git branch)"
 export timezone='Asia/Jakarta'
 export zip_name="kernel-""$device""-""$(env TZ='$timezone' date +%Y%m%d)"""
 export KERNEL_DIR=$(pwd)

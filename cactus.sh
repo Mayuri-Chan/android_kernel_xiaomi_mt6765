@@ -36,15 +36,15 @@ function release(){
 function success(){
 	release
 	curl -v -F "chat_id=$TELEGRAM_CHAT" -F "parse_mode=html" -F "text=Build completed successfully in $((BUILD_DIFF / 60)):$((BUILD_DIFF % 60))
-	Dev : ""$KBUILD_BUILD_USER""
-	Product : Kernel
-	Device : #""$device""
-	Branch : ""$branch""
-	Host : ""$KBUILD_BUILD_HOST""
-	Commit : ""$last_tag""
-	Compiler : ""$(${CROSS_COMPILE}gcc --version | head -n 1)""
-	Date : ""$(env TZ=Asia/Jakarta date)""
-	Download: <a href='https://github.com/""$release_repo""/releases/download/""$tag""/""$zip_name"".zip'>""$zip_name"".zip</a>" https://api.telegram.org/bot$TELEGRAM_TOKEN/sendMessage
+Dev : ""$KBUILD_BUILD_USER""
+Product : Kernel
+Device : #""$device""
+Branch : ""$branch""
+Host : ""$KBUILD_BUILD_HOST""
+Commit : ""$last_tag""
+Compiler : ""$(${CROSS_COMPILE}gcc --version | head -n 1)""
+Date : ""$(env TZ=Asia/Jakarta date)""
+Download: <a href='https://github.com/""$release_repo""/releases/download/""$tag""/""$zip_name"".zip'>""$zip_name"".zip</a>" https://api.telegram.org/bot$TELEGRAM_TOKEN/sendMessage
 	
 	curl -v -F "chat_id=$TELEGRAM_CHAT" -F document=@"$KERNEL_DIR"/kernel.log https://api.telegram.org/bot$TELEGRAM_TOKEN/sendDocument > /dev/null
 	exit 0
