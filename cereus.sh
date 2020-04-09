@@ -1,5 +1,7 @@
 #!/bin/bash
-sudo apt update && sudo apt install ccache
+sudo apt update && sudo apt install ccache python3 python3-pip
+python3 -m pip install configparser
+alias python="python3"
 # Export
 export device="cereus"
 source config.sh
