@@ -14,10 +14,14 @@
 
 import sys, os
 import re
-import ConfigParser
+try:
+	import ConfigParser
+except:
+	import configparser as ConfigParser
+
 import xml.dom.minidom
 
-from ModuleObj import ModuleObj
+from obj.ModuleObj import ModuleObj
 from data.PmicData import PmicData
 
 from utility.util import log

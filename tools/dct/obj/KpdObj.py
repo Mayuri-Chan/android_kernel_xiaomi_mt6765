@@ -14,10 +14,14 @@
 
 import re
 import string
-import ConfigParser
+try:
+	import ConfigParser
+except:
+	import configparser as ConfigParser
+
 import xml.dom.minidom
 
-from ModuleObj import ModuleObj
+from obj.ModuleObj import ModuleObj
 from utility.util import LogLevel
 from utility.util import log
 from data.KpdData import KpdData
@@ -34,15 +38,24 @@ class KpdObj(ModuleObj):
 
         ops = cp.options('Key_definition')
         for op in ops:
-            KpdData._keyValueMap[op.upper()] = string.atoi(cp.get('Key_definition', op))
+            try:
+                KpdData._keyValueMap[op.upper()] = string.atoi(cp.get('Key_definition', op))
+            except:
+                KpdData._keyValueMap[op.upper()] = int(cp.get('Key_definition', op))
 
         KpdData._keyValueMap['NC'] = 0
 
         cp.read(ModuleObj.get_figPath())
         if cp.has_option('KEYPAD_EXTEND_TYPE', 'KEY_ROW'):
-            KpdData.set_row_ext(string.atoi(cp.get('KEYPAD_EXTEND_TYPE', 'KEY_ROW')))
+            try:
+                KpdData.set_row_ext(string.atoi(cp.get('KEYPAD_EXTEND_TYPE', 'KEY_ROW')))
+            except:
+                KpdData.set_row_ext(int(cp.get('KEYPAD_EXTEND_TYPE', 'KEY_ROW')))
         if cp.has_option('KEYPAD_EXTEND_TYPE', 'KEY_COLUMN'):
-            KpdData.set_col_ext(string.atoi(cp.get('KEYPAD_EXTEND_TYPE', 'KEY_COLUMN')))
+            try:
+                KpdData.set_col_ext(string.atoi(cp.get('KEYPAD_EXTEND_TYPE', 'KEY_COLUMN')))
+            except:
+                KpdData.set_col_ext(int(cp.get('KEYPAD_EXTEND_TYPE', 'KEY_COLUMN')))
 
         return True
 
@@ -51,11 +64,17 @@ class KpdObj(ModuleObj):
         for node in nodes:
             if node.nodeType == xml.dom.Node.ELEMENT_NODE:
                 if node.nodeName == 'row':
-                    row = string.atoi(node.childNodes[0].nodeValue)
+                    try:
+                        row = string.atoi(node.childNodes[0].nodeValue)
+                    except:
+                        row = int(node.childNodes[0].nodeValue)
                     KpdData.set_row(row)
 
                 if node.nodeName == 'column':
-                    col = string.atoi(node.childNodes[0].nodeValue)
+                    try:
+                        col = string.atoi(node.childNodes[0].nodeValue)
+                    except:
+                        col = int(node.childNodes[0].nodeValue)
                     KpdData.set_col(col)
 
                 if node.nodeName == 'keyMatrix':
@@ -94,7 +113,10 @@ class KpdObj(ModuleObj):
                     KpdData._modeKeys['FACTORY'] = keys[2]
 
                 if node.nodeName == 'pwrKeyEint_gpioNum':
-                    num = string.atoi(node.childNodes[0].nodeValue)
+                    try:
+                        num = string.atoi(node.childNodes[0].nodeValue)
+                    except:
+                        num = int(node.childNodes[0].nodeValue)
                     KpdData.set_gpioNum(num)
 
                 if node.nodeName == 'pwrKeyUtility':
@@ -127,7 +149,10 @@ class KpdObj(ModuleObj):
                     KpdData.set_gpioDinHigh(flag)
 
                 if node.nodeName == 'pressPeriod':
-                    time = string.atoi(node.childNodes[0].nodeValue)
+                    try:
+                        time = string.atoi(node.childNodes[0].nodeValue)
+                    except:
+                        time = int(node.childNodes[0].nodeValue)
                     KpdData.set_pressTime(time)
 
                 if node.nodeName == 'keyType':

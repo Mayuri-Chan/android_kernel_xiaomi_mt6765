@@ -16,7 +16,11 @@ import re
 import os
 import string
 
-import ConfigParser
+try:
+	import ConfigParser
+except:
+	import configparser as ConfigParser
+
 import xml.dom.minidom
 
 from data.EintData import EintData
@@ -27,6 +31,9 @@ from utility.util import compare
 
 from obj.ModuleObj import ModuleObj
 from obj.GpioObj import GpioObj
+
+def cmp(a, b):
+    return (a > b) - (a < b)
 
 class EintObj(ModuleObj):
     def __init__(self, gpio_obj):
@@ -94,14 +101,20 @@ class EintObj(ModuleObj):
             value = cp.get('GPIO', op)
             list = re.split(r' +|\t+', value)
 
-            map[string.atoi(re.findall(r'\d+', op)[0])] = string.atoi(list[len(list)-2])
+            try:
+                map[string.atoi(re.findall(r'\d+', op)[0])] = string.atoi(list[len(list)-2])
+            except:
+                map[int(re.findall(r'\d+', op)[0])] = int(list[len(list)-2])
             mode_map[op] = list[0:len(list)-2]
 
         EintData.set_mapTable(map)
         EintData.set_modeMap(mode_map)
 
         if cp.has_option('EINT', 'EINT_MAP_COUNT'):
-            self.__map_count = string.atoi(cp.get('EINT', 'EINT_MAP_COUNT'))
+            try:
+                self.__map_count = string.atoi(cp.get('EINT', 'EINT_MAP_COUNT'))
+            except:
+                self.__map_count = int(cp.get('EINT', 'EINT_MAP_COUNT'))
 
         if cp.has_option('EINT', 'INTERNAL_EINT'):
             info = cp.get('EINT', 'INTERNAL_EINT')
@@ -191,9 +204,14 @@ class EintObj(ModuleObj):
         count = 0
 
         if self.__map_count == 0:
-            for i in range(0, string.atoi(self.__count)):
-                if EintData.get_gpioNum(i) >= 0:
-                    count += 1
+            try:
+                for i in range(0, string.atoi(self.__count)):
+                    if EintData.get_gpioNum(i) >= 0:
+                        count += 1
+            except:
+                for i in range(0, int(self.__count)):
+                    if EintData.get_gpioNum(i) >= 0:
+                        count += 1
             count += len(EintData._int_eint)
         else:
             count = self.__map_count
