@@ -37,7 +37,7 @@ function release(){
 }
 function success(){
 	#release
-	curl -v -F "chat_id=$TELEGRAM_CHAT" -f document=@"$ZIP_DIR"/"$zip_name".zip -F "parse_mode=html" -F "caption=Build completed successfully in $((BUILD_DIFF / 60)):$((BUILD_DIFF % 60))
+	curl -v -F "chat_id=$TELEGRAM_CHAT" -F document=@"$ZIP_DIR"/"$zip_name".zip -F "parse_mode=html" -F "caption=Build completed successfully in $((BUILD_DIFF / 60)):$((BUILD_DIFF % 60))
 Dev : ""$KBUILD_BUILD_USER""
 Product : Kernel
 Device : #""$device""
