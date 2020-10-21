@@ -36,8 +36,8 @@ function release(){
 	Date: $(env TZ=""$timezone"" date)" "$full_name"
 }
 function success(){
-	release
-	curl -v -F "chat_id=$TELEGRAM_CHAT" -F "parse_mode=html" -F "text=Build completed successfully in $((BUILD_DIFF / 60)):$((BUILD_DIFF % 60))
+	#release
+	curl -v -F "chat_id=$TELEGRAM_CHAT" -F document=@"$ZIP_DIR"/"$zip_name".zip -F "parse_mode=html" -F "caption=Build completed successfully in $((BUILD_DIFF / 60)):$((BUILD_DIFF % 60))
 Dev : ""$KBUILD_BUILD_USER""
 Product : Kernel
 Device : #""$device""
@@ -45,9 +45,8 @@ Branch : ""$branch""
 Host : ""$KBUILD_BUILD_HOST""
 Commit : ""$last_tag""
 Compiler : ""$(${CROSS_COMPILE}gcc --version | head -n 1)""
-Date : ""$(env TZ=Asia/Jakarta date)""
-Download: <a href='https://github.com/""$release_repo""/releases/download/""$tag""/""$zip_name"".zip'>""$zip_name"".zip</a>" https://api.telegram.org/bot$TELEGRAM_TOKEN/sendMessage
-	
+Date : ""$(env TZ=Asia/Jakarta date)""" https://api.telegram.org/bot$TELEGRAM_TOKEN/sendDocument
+
 	curl -v -F "chat_id=$TELEGRAM_CHAT" -F document=@"$KERNEL_DIR"/kernel.log https://api.telegram.org/bot$TELEGRAM_TOKEN/sendDocument > /dev/null
 	exit 0
 }
