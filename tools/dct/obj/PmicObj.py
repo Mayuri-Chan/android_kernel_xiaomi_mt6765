@@ -29,6 +29,8 @@ from utility.util import LogLevel
 from utility.util import compare
 from utility.util import sorted_key
 
+def cmp(a, b):
+    return (a > b) - (a < b)
 
 class PmicObj(ModuleObj):
     def __init__(self):

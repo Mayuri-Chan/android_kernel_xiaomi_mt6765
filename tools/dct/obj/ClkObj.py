@@ -29,6 +29,9 @@ from utility.util import log
 from utility.util import LogLevel
 from utility.util import sorted_key
 
+def cmp(a, b):
+    return (a > b) - (a < b)
+
 DEFAULT_AUTOK = 'AutoK'
 class ClkObj(ModuleObj):
     def __init__(self):

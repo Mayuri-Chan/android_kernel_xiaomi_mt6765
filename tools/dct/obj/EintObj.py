@@ -17,9 +17,9 @@ import os
 import string
 
 try:
-	import ConfigParser
+    import ConfigParser
 except:
-	import configparser as ConfigParser
+    import configparser as ConfigParser
 
 import xml.dom.minidom
 
@@ -263,23 +263,43 @@ class EintObj(ModuleObj):
         gpio_vec= []
 
         for key in EintData._builtin_map.keys():
-            if string.atoi(eint_num) == string.atoi(key):
-                temp_map = EintData._builtin_map[key]
-                for key in temp_map.keys():
-                    gpio_vec.append(key)
+            try:
+                if string.atoi(eint_num) == string.atoi(key):
+                    temp_map = EintData._builtin_map[key]
+                    for key in temp_map.keys():
+                        gpio_vec.append(key)
 
-                if flag:
-                    for item in temp_map.keys():
-                        item_data = self.__gpio_obj.get_gpioData(string.atoi(item))
+                    if flag:
+                        for item in temp_map.keys():
+                            item_data = self.__gpio_obj.get_gpioData(string.atoi(item))
 
-                        if item_data.get_defMode() == string.atoi(temp_map[item].split(':')[0]):
-                            gpio_vec = []
-                            gpio_vec.append(item)
-                            return gpio_vec
+                            if item_data.get_defMode() == string.atoi(temp_map[item].split(':')[0]):
+                                gpio_vec = []
+                                gpio_vec.append(item)
+                                return gpio_vec
 
-                break
+                    break
+            except:
+                if int(eint_num) == int(key):
+                    temp_map = EintData._builtin_map[key]
+                    for key in temp_map.keys():
+                        gpio_vec.append(key)
 
-        gpio_num = EintData.get_gpioNum(string.atoi(eint_num))
+                    if flag:
+                        for item in temp_map.keys():
+                            item_data = self.__gpio_obj.get_gpioData(int(item))
+
+                            if item_data.get_defMode() == int(temp_map[item].split(':')[0]):
+                                gpio_vec = []
+                                gpio_vec.append(item)
+                                return gpio_vec
+
+                    break
+
+        try:
+            gpio_num = EintData.get_gpioNum(string.atoi(eint_num))
+        except:
+            gpio_num = EintData.get_gpioNum(int(eint_num))
         if gpio_num >= 0:
             gpio_vec.append(gpio_num)
             if flag:
@@ -319,7 +339,10 @@ class EintObj(ModuleObj):
                 temp = 'IRQ_TYPE_LEVEL_LOW'
 
             gen_str += '''\tinterrupts = <%s %s>;\n''' %(self.refGpio(key[4:], True)[0], temp)
-            gen_str += '''\tdebounce = <%s %d>;\n''' %(self.refGpio(key[4:], True)[0], string.atoi(value.get_debounceTime()) * 1000)
+            try:
+                gen_str += '''\tdebounce = <%s %d>;\n''' %(self.refGpio(key[4:], True)[0], string.atoi(value.get_debounceTime()) * 1000)
+            except:
+                gen_str += '''\tdebounce = <%s %d>;\n''' %(self.refGpio(key[4:], True)[0], int(value.get_debounceTime()) * 1000)
             gen_str += '''\tstatus = \"okay\";\n'''
             gen_str += '''};\n'''
             gen_str += '''\n'''
@@ -379,7 +402,10 @@ class EintObj_MT6739(EintObj):
             gen_str += '''\tinterrupts = <%s %s %s %d>;\n''' % (key[4:], temp, self.refGpio(key[4:], True)[0], self.refGpio_defMode(key[4:], True))
             if cmp(value.get_debounceEnable(), 'Enable') == 0:
                 gen_str += '''\tdeb-gpios = <&pio %s 0>;\n''' % (self.refGpio(key[4:], True)[0])
-                gen_str += '''\tdebounce = <%d>;\n''' % (string.atoi(value.get_debounceTime()) * 1000)
+                try:
+                    gen_str += '''\tdebounce = <%d>;\n''' % (string.atoi(value.get_debounceTime()) * 1000)
+                except:
+                    gen_str += '''\tdebounce = <%d>;\n''' % (int(value.get_debounceTime()) * 1000)
             gen_str += '''\tstatus = \"okay\";\n'''
             gen_str += '''};\n'''
             gen_str += '''\n'''
@@ -393,20 +419,37 @@ class EintObj_MT6739(EintObj):
         refGpio_defMode = 0
 
         for key in EintData._builtin_map.keys():
-            if string.atoi(eint_num) == string.atoi(key):
-                temp_map = EintData._builtin_map[key]
+            try:
+                if string.atoi(eint_num) == string.atoi(key):
+                    temp_map = EintData._builtin_map[key]
 
-                if flag:
-                    for item in temp_map.keys():
-                        item_data = self.get_gpioObj().get_gpioData(string.atoi(item))
+                    if flag:
+                        for item in temp_map.keys():
+                            item_data = self.get_gpioObj().get_gpioData(string.atoi(item))
 
-                        if item_data.get_defMode() == string.atoi(temp_map[item].split(':')[0]):
-                            refGpio_defMode = item_data.get_defMode()
-                            return refGpio_defMode
+                            if item_data.get_defMode() == string.atoi(temp_map[item].split(':')[0]):
+                                refGpio_defMode = item_data.get_defMode()
+                                return refGpio_defMode
 
-                break
+                    break
+            except:
+                if int(eint_num) == int(key):
+                    temp_map = EintData._builtin_map[key]
 
-        gpio_num = EintData.get_gpioNum(string.atoi(eint_num))
+                    if flag:
+                        for item in temp_map.keys():
+                            item_data = self.get_gpioObj().get_gpioData(int(item))
+
+                            if item_data.get_defMode() == int(temp_map[item].split(':')[0]):
+                                refGpio_defMode = item_data.get_defMode()
+                                return refGpio_defMode
+
+                    break
+
+        try:
+            gpio_num = EintData.get_gpioNum(string.atoi(eint_num))
+        except:
+            gpio_num = EintData.get_gpioNum(int(eint_num))
         if gpio_num >= 0:
             if flag:
                 item_data = self.get_gpioObj().get_gpioData(gpio_num)

@@ -45,6 +45,9 @@ from obj.ModuleObj import ModuleObj
 from utility.util import log
 from utility.util import LogLevel
 
+def cmp(a, b):
+    return (a > b) - (a < b)
+
 para_map = {'adc':['adc_h', 'adc_dtsi'],\
             'clk':['clk_buf_h', 'clk_buf_dtsi'],\
             'i2c':['i2c_h', 'i2c_dtsi'],\

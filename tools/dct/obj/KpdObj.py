@@ -26,6 +26,9 @@ from utility.util import LogLevel
 from utility.util import log
 from data.KpdData import KpdData
 
+def cmp(a, b):
+    return (a > b) - (a < b)
+
 class KpdObj(ModuleObj):
 
     def __init__(self):

@@ -33,6 +33,9 @@ from utility.util import sorted_key
 from utility.util import log
 from utility.util import LogLevel
 
+def cmp(a, b):
+    return (a > b) - (a < b)
+
 class GpioObj(ModuleObj):
     def __init__(self):
         ModuleObj.__init__(self,'cust_gpio_boot.h', 'cust_gpio.dtsi')

@@ -27,6 +27,9 @@ from data.I2cData import I2cData
 from data.I2cData import BusData
 import obj.ChipObj
 
+def cmp(a, b):
+    return (a > b) - (a < b)
+
 class I2cObj(ModuleObj):
     _busList = []
     _bBusEnable = True
