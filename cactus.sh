@@ -21,7 +21,7 @@ function build(){
 	cd "$KERNEL_DIR"
 	export last_tag=$(git log -1 --oneline)
 	curl -v -F "chat_id=$TELEGRAM_CHAT" -F "parse_mode=html" -F text="Build Started" https://api.telegram.org/bot$TELEGRAM_TOKEN/sendMessage > /dev/null
-	make  O=out "$device"_defconfig "$THREAD" > "$KERNEL_DIR"/kernel.log
+	make  O=out wulan17_defconfig "$THREAD" > "$KERNEL_DIR"/kernel.log
 	make "$THREAD" O=out >> "$KERNEL_DIR"/kernel.log
 	BUILD_END=$(date +"%s")
 	BUILD_DIFF=$((BUILD_END - BUILD_START))
@@ -40,7 +40,7 @@ function success(){
 	curl -v -F "chat_id=$TELEGRAM_CHAT" -F "parse_mode=html" -F "text=Build completed successfully in $((BUILD_DIFF / 60)):$((BUILD_DIFF % 60))
 Dev : ""$KBUILD_BUILD_USER""
 Product : Kernel
-Device : #""$device""
+Device : #cactus #cereus
 Branch : ""$branch""
 Host : ""$KBUILD_BUILD_HOST""
 Commit : ""$last_tag""
