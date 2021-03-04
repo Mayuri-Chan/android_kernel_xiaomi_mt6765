@@ -9,7 +9,8 @@ source config.sh
 function sync(){
 	SYNC_START=$(date +"%s")
 	curl -v -F "chat_id=$TELEGRAM_CHAT" -F "parse_mode=html" -F text="Sync Started" https://api.telegram.org/bot$TELEGRAM_TOKEN/sendMessage
-	cd "$KERNEL_DIR" && git clone "$tc_repo" "$tc_name"-"$tc_v"
+	cd "$KERNEL_DIR" && wget -O "$tc_filename".tar.xz "$tc_url"
+	cd "$KERNEL_DIR" && tar -xvJf "$tc_filename".tar.xz && mv "$tc_filename" "$tc_name"-"$tc_v" && rm "$tc_filename".tar.xz
 	cd "$KERNEL_DIR" && git clone https://github.com/wulan17/AnyKernel3.git -b "$device" anykernel
 	chmod -R a+x "$KERNEL_DIR"/"$tc_name"-"$tc_v"
 	SYNC_END=$(date +"%s")
