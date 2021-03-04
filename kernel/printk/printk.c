@@ -186,10 +186,10 @@ static int __init control_devkmsg(char *str)
 	 */
 	if (devkmsg_log == DEVKMSG_LOG_MASK_ON) {
 		memset(devkmsg_log_str, 0, DEVKMSG_STR_MAX_SIZE);
-		strncpy(devkmsg_log_str, "on", 2);
+		snprintf(devkmsg_log_str, 2, "on");
 	} else if (devkmsg_log == DEVKMSG_LOG_MASK_OFF) {
 		memset(devkmsg_log_str, 0, DEVKMSG_STR_MAX_SIZE);
-		strncpy(devkmsg_log_str, "off", 3);
+		snprintf(devkmsg_log_str, 3, "off");
 	}
 	/* else "ratelimit" which is set by default. */
 
@@ -220,7 +220,7 @@ int devkmsg_sysctl_set_loglvl(struct ctl_table *table, int write,
 
 		old = devkmsg_log;
 		memset(old_str, 0, sizeof(old_str));
-		strncpy(old_str, devkmsg_log_str, DEVKMSG_STR_MAX_SIZE - 1);
+		snprintf(old_str, DEVKMSG_STR_MAX_SIZE - 1, devkmsg_log_str);
 	}
 
 	err = proc_dostring(table, write, buffer, lenp, ppos);
@@ -239,8 +239,8 @@ int devkmsg_sysctl_set_loglvl(struct ctl_table *table, int write,
 			/* ... and restore old setting. */
 			devkmsg_log = old;
 			memset(devkmsg_log_str, 0, sizeof(devkmsg_log_str));
-			strncpy(devkmsg_log_str, old_str,
-				DEVKMSG_STR_MAX_SIZE - 1);
+			snprintf(devkmsg_log_str,
+				DEVKMSG_STR_MAX_SIZE - 1, old_str);
 
 			return -EINVAL;
 		}

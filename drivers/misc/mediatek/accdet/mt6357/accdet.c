@@ -241,7 +241,7 @@ static void cat_register(char *buf)
 #ifdef CONFIG_ACCDET_SUPPORT_EINT0
 	sprintf(buf_temp, "[Accdet EINT0 support][MODE_%d]regs:\n",
 		accdet_dts.mic_mode);
-	strncat(buf, buf_temp, strlen(buf_temp));
+	memcpy(buf, buf_temp, strlen(buf_temp));
 #elif defined CONFIG_ACCDET_SUPPORT_EINT1
 	sprintf(buf_temp, "[ccdet EINT1 support][MODE_%d]regs:\n",
 		accdet_dts.mic_mode);
@@ -263,39 +263,39 @@ static void cat_register(char *buf)
 
 	for (i = ACCDET_RSV; i <= ACCDET_EINT1_CUR_DEB; i += 2) {
 		sprintf(buf_temp, "ADDR[0x%x]=0x%x\n", i, pmic_read(i));
-		strncat(buf, buf_temp, strlen(buf_temp));
+		memcpy(buf, buf_temp, strlen(buf_temp));
 	}
 
 	sprintf(buf_temp, "[0x%x]=0x%x\n",
 		TOP_CKPDN_CON0, pmic_read(TOP_CKPDN_CON0));
-	strncat(buf, buf_temp, strlen(buf_temp));
+	memcpy(buf, buf_temp, strlen(buf_temp));
 
 	sprintf(buf_temp, "[0x%x]=0x%x\n",
 		AUD_TOP_RST_CON0, pmic_read(AUD_TOP_RST_CON0));
-	strncat(buf, buf_temp, strlen(buf_temp));
+	memcpy(buf, buf_temp, strlen(buf_temp));
 
 	sprintf(buf_temp, "[0x%x]=0x%x, [0x%x]=0x%x, [0x%x]=0x%x\n",
 		AUD_TOP_INT_CON0, pmic_read(AUD_TOP_INT_CON0),
 		AUD_TOP_INT_MASK_CON0, pmic_read(AUD_TOP_INT_MASK_CON0),
 		AUD_TOP_INT_STATUS0, pmic_read(AUD_TOP_INT_STATUS0));
-	strncat(buf, buf_temp, strlen(buf_temp));
+	memcpy(buf, buf_temp, strlen(buf_temp));
 
 	sprintf(buf_temp, "[0x%x]=0x%x,[0x%x]=0x%x,[0x%x]=0x%x,[0x%x]=0x%x\n",
 		AUDENC_ANA_CON6, pmic_read(AUDENC_ANA_CON6),
 		AUDENC_ANA_CON9, pmic_read(AUDENC_ANA_CON9),
 		AUDENC_ANA_CON10, pmic_read(AUDENC_ANA_CON10),
 		AUDENC_ANA_CON11, pmic_read(AUDENC_ANA_CON11));
-	strncat(buf, buf_temp, strlen(buf_temp));
+	memcpy(buf, buf_temp, strlen(buf_temp));
 
 	sprintf(buf_temp, "[0x%x]=0x%x, [0x%x]=0x%x\n",
 		AUXADC_RQST0, pmic_read(AUXADC_RQST0),
 		AUXADC_ACCDET, pmic_read(AUXADC_ACCDET));
-	strncat(buf, buf_temp, strlen(buf_temp));
+	memcpy(buf, buf_temp, strlen(buf_temp));
 
 	sprintf(buf_temp, "dtsInfo:deb0=0x%x,deb1=0x%x,deb3=0x%x,deb4=0x%x\n",
 		 cust_pwm_deb->debounce0, cust_pwm_deb->debounce1,
 		 cust_pwm_deb->debounce3, cust_pwm_deb->debounce4);
-	strncat(buf, buf_temp, strlen(buf_temp));
+	memcpy(buf, buf_temp, strlen(buf_temp));
 }
 
 static int dbug_thread(void *unused)
