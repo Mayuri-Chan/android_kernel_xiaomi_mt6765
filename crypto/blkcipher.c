@@ -507,9 +507,9 @@ static int crypto_blkcipher_report(struct sk_buff *skb, struct crypto_alg *alg)
 {
 	struct crypto_report_blkcipher rblkcipher;
 
-	strncpy(rblkcipher.type, "blkcipher", sizeof(rblkcipher.type));
-	strncpy(rblkcipher.geniv, alg->cra_blkcipher.geniv ?: "<default>",
-		sizeof(rblkcipher.geniv));
+	snprintf(rblkcipher.type, sizeof(rblkcipher.type), "blkcipher");
+	snprintf(rblkcipher.geniv, sizeof(rblkcipher.geniv),
+		alg->cra_blkcipher.geniv ?: "<default>");
 
 	rblkcipher.blocksize = alg->cra_blocksize;
 	rblkcipher.min_keysize = alg->cra_blkcipher.min_keysize;

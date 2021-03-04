@@ -905,7 +905,7 @@ void pm_qos_add_request(struct pm_qos_request *req,
 	}
 
 	/* use function name to register pm_qos */
-	strncpy(req->owner, owner, sizeof(req->owner) - 1);
+	snprintf(req->owner, sizeof(req->owner) - 1, owner);
 
 	req->pm_qos_class = pm_qos_class;
 	INIT_DELAYED_WORK(&req->work, pm_qos_work_fn);

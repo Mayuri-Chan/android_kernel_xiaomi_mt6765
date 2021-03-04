@@ -3833,7 +3833,7 @@ void bmd_ctrl_cmd_from_user(void *nl_data, struct fgd_nl_msg_t *ret_msg)
 		gm.proc_subcmd = msg->fgd_subcmd;
 		gm.proc_subcmd_para1 = msg->fgd_subcmd_para1;
 		memset(gm.proc_log, 0, 4096);
-		strncpy(gm.proc_log, &msg->fgd_data[0],
+		memcpy(gm.proc_log, &msg->fgd_data[0],
 			strlen(&msg->fgd_data[0]));
 		bm_err("[fr] FG_DAEMON_CMD_DUMP_LOG %d %d %d\n",
 			msg->fgd_subcmd, msg->fgd_subcmd_para1,
