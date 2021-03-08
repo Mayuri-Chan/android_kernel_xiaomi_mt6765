@@ -6090,7 +6090,7 @@ unsigned int read_raw_data(struct mxt_data *data, u8 mode)
 	data->T37_buf = kmalloc(data->T37_buf_size, GFP_KERNEL);
 	if (!data->T37_buf)
 		return -ENOMEM;
-	printk("ttt1 t37_buf addr:%p ,t37_buff_size:%d\n",(void *)data->T37_buf,data->T37_buf_size);
+	printk("ttt1 t37_buf addr:%p ,t37_buff_size:%zd\n",(void *)data->T37_buf,data->T37_buf_size);
 
 	/* Temporary buffer used to fetch one T37 page */
 	obuf = kmalloc(mxt_obj_size(T37), GFP_KERNEL);
@@ -6100,7 +6100,7 @@ unsigned int read_raw_data(struct mxt_data *data, u8 mode)
   
 	num_pages = DIV_ROUND_UP(T37_buf_size, mxt_obj_size(T37) - 2);
 	pos = 0;
-	printk("ttt2 t37_buf addr:%p ,t37_buff_size:%d \n",(void *)data->T37_buf,data->T37_buf_size);
+	printk("ttt2 t37_buf addr:%p ,t37_buff_size:%zd \n",(void *)data->T37_buf,data->T37_buf_size);
 	for (i = 0; i < num_pages; i++) {
 		u8 cmd;
 		size_t chunk_len;
@@ -6136,9 +6136,9 @@ unsigned int read_raw_data(struct mxt_data *data, u8 mode)
 		 * left, whichever is less.
 		 */
 		chunk_len = min(mxt_obj_size(T37) - 2, T37_buf_size - pos);
-		printk("ttt3 t37_buf addr:%p ,chunk_len:%d \n",(void *)data->T37_buf,chunk_len);
+		printk("ttt3 t37_buf addr:%p ,chunk_len:%zd \n",(void *)data->T37_buf,chunk_len);
 		memcpy(&data->T37_buf[pos], &obuf[2], chunk_len);
-		printk("ttt4 t37_buf addr:%p ,chunk_len:%d \n",(void *)data->T37_buf,chunk_len);
+		printk("ttt4 t37_buf addr:%p ,chunk_len:%zd \n",(void *)data->T37_buf,chunk_len);
 		pos += chunk_len;
 	}
 	
@@ -6151,7 +6151,7 @@ unsigned int read_raw_data(struct mxt_data *data, u8 mode)
             continue;
 		data->raw_data_16[i] = lsb | (msb << 8);
 		i++;
-		printk("ttt5 t37_buf addr:%p , i:%d ,RAW_DATA_SIZE=30*15\n",(void *)data->T37_buf,i); 
+		printk("ttt5 t37_buf addr:%p , i:%zd ,RAW_DATA_SIZE=30*15\n",(void *)data->T37_buf,i); 
     }
 
 
@@ -6212,7 +6212,7 @@ err_free_T37_buf:
 	}
 
 	msleep(300);
-	printk("ttt10 t37_buf addr:%p ,ret :%d \n",(void *)data->T37_buf,ret); 
+	printk("ttt10 t37_buf addr:%p ,ret :%zd \n",(void *)data->T37_buf,ret); 
 	printk("mxt: read_raw_data, chip BACKUP and RESET completed! Exit!\n");
 	
 	return ret ?: 0;
