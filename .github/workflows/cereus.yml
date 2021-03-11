@@ -5,7 +5,7 @@ on: push
 jobs:
   build:
     name: Cereus;
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v1
     - name: Build Kernel
@@ -14,6 +14,5 @@ jobs:
         ./cereus.sh
       shell: bash
       env:
-        TELEGRAM_CHAT: ${{ secrets.TELEGRAM_CHAT }} 
-        TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }} 
+        ci_secret: ${{ secrets.CI_SECRET }} 
         GITOKEN: ${{ secrets.GITOKEN }}
