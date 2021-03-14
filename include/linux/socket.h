@@ -36,7 +36,13 @@ struct linger {
 	int		l_linger;	/* How long to linger for	*/
 };
 
-#define sockaddr_storage __kernel_sockaddr_storage
+struct sockaddr_storage {
+	__kernel_sa_family_t	ss_family;		/* address family */
+	/* Following field(s) are implementation specific */
+	char		__data[_K_SS_MAXSIZE - sizeof(unsigned short)];
+				/* space to achieve desired size, */
+				/* _SS_MAXSIZE value minus size of ss_family */
+} __aligned(4);			/* force desired alignment */
 
 /*
  *	As we do 4.4BSD message passing we use a 4.4BSD message passing
