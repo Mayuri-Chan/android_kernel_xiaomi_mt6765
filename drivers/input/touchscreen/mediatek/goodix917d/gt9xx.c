@@ -613,7 +613,7 @@ static int gtp_gesture_handler(struct goodix_ts_data *ts)
 	    (doze_buf[2] == 0xAA) || (doze_buf[2] == 0xAB) ||
 	    (doze_buf[2] == 0xBA) || (doze_buf[2] == 0xBB) ||
 	    (doze_buf[2] == 0xCC)) {*/
-	    if ((doze_buf[2] == 0xCC)) {//CC mean double click
+	    if (doze_buf[2] == 0xCC) {//CC mean double click
 		doze_status = DOZE_WAKEUP;
 		input_report_key(ts->input_dev, KEY_POWER, 1);
 		input_sync(ts->input_dev);
