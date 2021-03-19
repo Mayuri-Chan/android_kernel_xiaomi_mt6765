@@ -350,7 +350,7 @@ static int battery_get_property(struct power_supply *psy,
 		val->intval = data->BAT_batt_temp * 10;
 		break;
 	case POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN:
-		val->intval = 3000;
+		val->intval = 3000000;
 		break;
 
 	default:
