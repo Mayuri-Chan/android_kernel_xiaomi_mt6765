@@ -336,7 +336,9 @@ static int battery_get_property(struct power_supply *psy,
 		val->intval = battery_get_bat_avg_current() * 100;
 		break;
 	case POWER_SUPPLY_PROP_CHARGE_FULL:
-		val->intval = gm.algo_qmax;
+		val->intval =
+			fg_table_cust_data.fg_profile[gm.battery_id].q_max
+			* 1000;
 		break;
 	case POWER_SUPPLY_PROP_CHARGE_COUNTER:
 		val->intval = gm.ui_soc *
