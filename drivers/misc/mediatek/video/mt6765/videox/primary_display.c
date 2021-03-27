@@ -125,6 +125,9 @@ static unsigned int g_skip;
 static struct switch_dev disp_switch_data;
 #endif
 
+static uint display_framerate_main;
+static uint display_framerate_ext;
+
 #if 0
 /* global variable for idle manager */
 static unsigned long long idlemgr_last_kick_time = ~(0ULL);
@@ -781,6 +784,7 @@ static unsigned int _fps_ctx_get_avg_fps(struct fps_ctx_t *fps_ctx)
 	if (fps_ctx->cur_wnd_sz == 0)
 		return 0;
 	avg_fps = fps_ctx->total / fps_ctx->cur_wnd_sz;
+	display_framerate_main = avg_fps;
 	return avg_fps;
 }
 
@@ -790,6 +794,7 @@ static unsigned int _fps_ctx_get_avg_fps_ext(struct fps_ctx_t *fps_ctx,
 	unsigned int avg_fps;
 
 	avg_fps = (fps_ctx->total + abs_fps) / (fps_ctx->cur_wnd_sz + 1);
+	display_framerate_ext = avg_fps;
 	return avg_fps;
 }
 
@@ -9541,3 +9546,6 @@ int primary_display_set_scenario(int scenario)
 
 	return ret;
 }
+
+module_param(display_framerate_main, uint, 0664);
+module_param(display_framerate_ext, uint, 0664);
