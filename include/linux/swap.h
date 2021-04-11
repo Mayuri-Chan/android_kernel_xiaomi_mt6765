@@ -245,7 +245,7 @@ struct swap_info_struct {
 
 /* linux/mm/workingset.c */
 void *workingset_eviction(struct address_space *mapping, struct page *page);
-bool workingset_refault(void *shadow);
+void workingset_refault(struct page *page, void *shadow);
 void workingset_activation(struct page *page);
 extern struct list_lru workingset_shadow_nodes;
 
@@ -330,6 +330,12 @@ extern unsigned long shrink_all_memory(unsigned long nr_pages);
 extern int vm_swappiness;
 extern int remove_mapping(struct address_space *mapping, struct page *page);
 extern unsigned long vm_total_pages;
+
+#ifdef CONFIG_MEMCG
+extern unsigned long vmpressure_win;
+extern unsigned int vmpressure_level_med;
+extern unsigned int vmpressure_level_critical;
+#endif
 
 #ifdef CONFIG_NUMA
 extern int node_reclaim_mode;

@@ -76,6 +76,7 @@ struct notifier_block;
 #define CPU_DEAD		0x0007 /* CPU (unsigned)v dead */
 #define CPU_POST_DEAD		0x0009 /* CPU (unsigned)v dead, cpu_hotplug
 					* lock is dropped */
+#define CPU_STARTING		0x000A
 #define CPU_BROKEN		0x000B /* CPU (unsigned)v did not die properly,
 					* perhaps due to preemption. */
 
@@ -305,5 +306,12 @@ static inline bool cpu_mitigations_auto_nosmt(void)
 {
 	return cpu_mitigations == CPU_MITIGATIONS_AUTO_NOSMT;
 }
+
+#define IDLE_START 1
+#define IDLE_END 2
+
+void idle_notifier_register(struct notifier_block *n);
+void idle_notifier_unregister(struct notifier_block *n);
+void idle_notifier_call_chain(unsigned long val);
 
 #endif /* _LINUX_CPU_H_ */

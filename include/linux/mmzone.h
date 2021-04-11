@@ -87,6 +87,12 @@ extern int page_group_by_mobility_disabled;
 	get_pfnblock_flags_mask(page, page_to_pfn(page),		\
 			PB_migrate_end, MIGRATETYPE_MASK)
 
+static inline int get_pfnblock_migratetype(struct page *page, unsigned long pfn)
+{
+	return get_pfnblock_flags_mask(page, pfn, PB_migrate_end,
+					MIGRATETYPE_MASK);
+}
+
 struct free_area {
 	struct list_head	free_list[MIGRATE_TYPES];
 	unsigned long		nr_free;
@@ -153,6 +159,7 @@ enum node_stat_item {
 	NR_PAGES_SCANNED,	/* pages scanned since last reclaim */
 	WORKINGSET_REFAULT,
 	WORKINGSET_ACTIVATE,
+	WORKINGSET_RESTORE,
 	WORKINGSET_NODERECLAIM,
 	NR_ANON_MAPPED,	/* Mapped anonymous pages */
 	NR_FILE_MAPPED,	/* pagecache pages mapped into pagetables.
@@ -581,6 +588,9 @@ struct zonelist {
 #ifndef CONFIG_DISCONTIGMEM
 /* The array of struct pages - for discontigmem use pgdat->lmem_map */
 extern struct page *mem_map;
+#ifdef CONFIG_MTK_MEMCFG
+extern unsigned long mem_map_size;
+#endif
 #endif
 
 /*

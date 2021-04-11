@@ -11,6 +11,7 @@
 #include <linux/vmalloc.h>
 #include <linux/blkdev.h>
 #include <linux/namei.h>
+#include <linux/mount.h>
 #include <linux/ctype.h>
 #include <linux/string.h>
 #include <linux/slab.h>
@@ -383,6 +384,29 @@ dev_t dm_get_dev_t(const char *path)
 		bdput(bdev);
 	}
 
+	if (!dev) {
+		unsigned int wait_time_ms = 0;
+
+		DMERR("%s: retry %s\n", __func__, path);
+		while (driver_probe_done() != 0 || dev == 0) {
+			msleep(100);
+			wait_time_ms += 100;
+			if (wait_time_ms > DM_WAIT_DEV_MAX_TIME) {
+				DMERR("%s: retry timeout(%dms)\n", __func__,
+						DM_WAIT_DEV_MAX_TIME);
+				DMERR("no dev found for %s", path);
+				return 0;
+			}
+			bdev = lookup_bdev(path);
+			if (IS_ERR(bdev))
+				dev = name_to_dev_t(path);
+			else {
+				dev = bdev->bd_dev;
+				bdput(bdev);
+			}
+		}
+	}
+
 	return dev;
 }
 EXPORT_SYMBOL_GPL(dm_get_dev_t);
@@ -510,14 +534,14 @@ static int adjoin(struct dm_table *table, struct dm_target *ti)
  * On the other hand, dm-switch needs to process bulk data using messages and
  * excessive use of GFP_NOIO could cause trouble.
  */
-static char **realloc_argv(unsigned *array_size, char **old_argv)
+static char **realloc_argv(unsigned *size, char **old_argv)
 {
 	char **argv;
 	unsigned new_size;
 	gfp_t gfp;
 
-	if (*array_size) {
-		new_size = *array_size * 2;
+	if (*size) {
+		new_size = *size * 2;
 		gfp = GFP_KERNEL;
 	} else {
 		new_size = 8;
@@ -525,8 +549,8 @@ static char **realloc_argv(unsigned *array_size, char **old_argv)
 	}
 	argv = kmalloc(new_size * sizeof(*argv), gfp);
 	if (argv) {
-		memcpy(argv, old_argv, *array_size * sizeof(*argv));
-		*array_size = new_size;
+		memcpy(argv, old_argv, *size * sizeof(*argv));
+		*size = new_size;
 	}
 
 	kfree(old_argv);
@@ -1755,7 +1779,7 @@ int dm_table_any_congested(struct dm_table *t, int bdi_bits)
 		char b[BDEVNAME_SIZE];
 
 		if (likely(q))
-			r |= bdi_congested(&q->backing_dev_info, bdi_bits);
+			r |= bdi_congested(q->backing_dev_info, bdi_bits);
 		else
 			DMWARN_LIMIT("%s: any_congested: nonexistent device %s",
 				     dm_device_name(t->md),

@@ -495,7 +495,8 @@ static int userfaultfd_release(struct inode *inode, struct file *file)
 				 new_flags, vma->anon_vma,
 				 vma->vm_file, vma->vm_pgoff,
 				 vma_policy(vma),
-				 NULL_VM_UFFD_CTX);
+				 NULL_VM_UFFD_CTX,
+				 vma_get_anon_name(vma));
 		if (prev)
 			vma = prev;
 		else
@@ -837,6 +838,18 @@ static int userfaultfd_register(struct userfaultfd_ctx *ctx,
 			goto out_unlock;
 
 		/*
+		 * UFFDIO_COPY will fill file holes even without
+		 * PROT_WRITE. This check enforces that if this is a
+		 * MAP_SHARED, the process has write permission to the backing
+		 * file. If VM_MAYWRITE is set it also enforces that on a
+		 * MAP_SHARED vma: there is no F_WRITE_SEAL and no further
+		 * F_WRITE_SEAL can be taken until the vma is destroyed.
+		 */
+		ret = -EPERM;
+		if (unlikely(!(cur->vm_flags & VM_MAYWRITE)))
+			goto out_unlock;
+
+		/*
 		 * Check that this vma isn't already owned by a
 		 * different userfaultfd. We can't allow more than one
 		 * userfaultfd to own a single vma simultaneously or we
@@ -861,6 +874,7 @@ static int userfaultfd_register(struct userfaultfd_ctx *ctx,
 		BUG_ON(vma->vm_ops);
 		BUG_ON(vma->vm_userfaultfd_ctx.ctx &&
 		       vma->vm_userfaultfd_ctx.ctx != ctx);
+		WARN_ON(!(vma->vm_flags & VM_MAYWRITE));
 
 		/*
 		 * Nothing to do: this vma is already registered into this
@@ -878,7 +892,8 @@ static int userfaultfd_register(struct userfaultfd_ctx *ctx,
 		prev = vma_merge(mm, prev, start, vma_end, new_flags,
 				 vma->anon_vma, vma->vm_file, vma->vm_pgoff,
 				 vma_policy(vma),
-				 ((struct vm_userfaultfd_ctx){ ctx }));
+				 ((struct vm_userfaultfd_ctx){ ctx }),
+				 vma_get_anon_name(vma));
 		if (prev) {
 			vma = prev;
 			goto next;
@@ -1002,6 +1017,7 @@ static int userfaultfd_unregister(struct userfaultfd_ctx *ctx,
 		cond_resched();
 
 		BUG_ON(vma->vm_ops);
+		WARN_ON(!(vma->vm_flags & VM_MAYWRITE));
 
 		/*
 		 * Nothing to do: this vma is already registered into this
@@ -1018,7 +1034,8 @@ static int userfaultfd_unregister(struct userfaultfd_ctx *ctx,
 		prev = vma_merge(mm, prev, start, vma_end, new_flags,
 				 vma->anon_vma, vma->vm_file, vma->vm_pgoff,
 				 vma_policy(vma),
-				 NULL_VM_UFFD_CTX);
+				 NULL_VM_UFFD_CTX,
+				 vma_get_anon_name(vma));
 		if (prev) {
 			vma = prev;
 			goto next;

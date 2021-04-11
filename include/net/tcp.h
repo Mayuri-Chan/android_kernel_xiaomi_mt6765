@@ -273,6 +273,7 @@ extern int sysctl_tcp_autocorking;
 extern int sysctl_tcp_invalid_ratelimit;
 extern int sysctl_tcp_pacing_ss_ratio;
 extern int sysctl_tcp_pacing_ca_ratio;
+extern int sysctl_tcp_default_init_rwnd;
 
 extern atomic_long_t tcp_memory_allocated;
 extern struct percpu_counter tcp_sockets_allocated;
@@ -1510,6 +1511,9 @@ struct sock *tcp_try_fastopen(struct sock *sk, struct sk_buff *skb,
 			      struct tcp_fastopen_cookie *foc,
 			      struct dst_entry *dst);
 void tcp_fastopen_init_key_once(bool publish);
+bool tcp_fastopen_cookie_check(struct sock *sk, u16 *mss,
+			     struct tcp_fastopen_cookie *cookie);
+bool tcp_fastopen_defer_connect(struct sock *sk, int *err);
 #define TCP_FASTOPEN_KEY_LENGTH 16
 
 static inline void tcp_init_send_head(struct sock *sk)
@@ -1524,6 +1528,8 @@ struct tcp_fastopen_context {
 	struct rcu_head		rcu;
 };
 
+static inline void tcp_init_send_head(struct sock *sk);
+
 /* write queue abstraction */
 static inline void tcp_write_queue_purge(struct sock *sk)
 {
@@ -1531,6 +1537,7 @@ static inline void tcp_write_queue_purge(struct sock *sk)
 
 	while ((skb = __skb_dequeue(&sk->sk_write_queue)) != NULL)
 		sk_wmem_free_skb(sk, skb);
+	tcp_init_send_head(sk);
 	sk_mem_reclaim(sk);
 	tcp_clear_all_retrans_hints(tcp_sk(sk));
 	tcp_init_send_head(sk);

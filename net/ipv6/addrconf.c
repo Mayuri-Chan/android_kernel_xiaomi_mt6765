@@ -188,11 +188,14 @@ static void addrconf_dad_run(struct inet6_dev *idev);
 static void addrconf_rs_timer(unsigned long data);
 static void __ipv6_ifa_notify(int event, struct inet6_ifaddr *ifa);
 static void ipv6_ifa_notify(int event, struct inet6_ifaddr *ifa);
-
+static void inet6_no_ra_notify(int event, struct inet6_dev *idev);
+static int inet6_fill_nora(struct sk_buff *skb, struct inet6_dev *idev,
+			   u32 portid, u32 seq, int event);
 static void inet6_prefix_notify(int event, struct inet6_dev *idev,
 				struct prefix_info *pinfo);
 static bool ipv6_chk_same_addr(struct net *net, const struct in6_addr *addr,
 			       struct net_device *dev);
+static void inet6_send_rs_vzw(struct inet6_ifaddr *ifp);
 
 static struct ipv6_devconf ipv6_devconf __read_mostly = {
 	.forwarding		= 0,
@@ -223,9 +226,11 @@ static struct ipv6_devconf ipv6_devconf __read_mostly = {
 	.accept_ra_rtr_pref	= 1,
 	.rtr_probe_interval	= 60 * HZ,
 #ifdef CONFIG_IPV6_ROUTE_INFO
+	.accept_ra_rt_info_min_plen = 0,
 	.accept_ra_rt_info_max_plen = 0,
 #endif
 #endif
+	.accept_ra_rt_table	= 0,
 	.proxy_ndp		= 0,
 	.accept_source_route	= 0,	/* we do not accept RH0 by default. */
 	.disable_ipv6		= 0,
@@ -238,6 +243,7 @@ static struct ipv6_devconf ipv6_devconf __read_mostly = {
 	.use_oif_addrs_only	= 0,
 	.ignore_routes_with_linkdown = 0,
 	.keep_addr_on_down	= 0,
+	.addr_gen_mode		= IN6_ADDR_GEN_MODE_EUI64,
 };
 
 static struct ipv6_devconf ipv6_devconf_dflt __read_mostly = {
@@ -269,9 +275,11 @@ static struct ipv6_devconf ipv6_devconf_dflt __read_mostly = {
 	.accept_ra_rtr_pref	= 1,
 	.rtr_probe_interval	= 60 * HZ,
 #ifdef CONFIG_IPV6_ROUTE_INFO
+	.accept_ra_rt_info_min_plen = 0,
 	.accept_ra_rt_info_max_plen = 0,
 #endif
 #endif
+	.accept_ra_rt_table	= 0,
 	.proxy_ndp		= 0,
 	.accept_source_route	= 0,	/* we do not accept RH0 by default. */
 	.disable_ipv6		= 0,
@@ -284,7 +292,11 @@ static struct ipv6_devconf ipv6_devconf_dflt __read_mostly = {
 	.use_oif_addrs_only	= 0,
 	.ignore_routes_with_linkdown = 0,
 	.keep_addr_on_down	= 0,
+	.addr_gen_mode		= IN6_ADDR_GEN_MODE_EUI64,
 };
+
+/* this is save current operator value */
+int sysctl_optr __read_mostly;
 
 /* Check if link is ready: is it up and is a valid qdisc available */
 static inline bool addrconf_link_ready(const struct net_device *dev)
@@ -376,9 +388,9 @@ static struct inet6_dev *ipv6_add_dev(struct net_device *dev)
 	memcpy(&ndev->cnf, dev_net(dev)->ipv6.devconf_dflt, sizeof(ndev->cnf));
 
 	if (ndev->cnf.stable_secret.initialized)
-		ndev->addr_gen_mode = IN6_ADDR_GEN_MODE_STABLE_PRIVACY;
+		ndev->cnf.addr_gen_mode = IN6_ADDR_GEN_MODE_STABLE_PRIVACY;
 	else
-		ndev->addr_gen_mode = IN6_ADDR_GEN_MODE_EUI64;
+		ndev->cnf.addr_gen_mode = ipv6_devconf_dflt.addr_gen_mode;
 
 	ndev->cnf.mtu6 = dev->mtu;
 	ndev->nd_parms = neigh_parms_alloc(dev, &nd_tbl);
@@ -2127,6 +2139,9 @@ static int addrconf_ifid_ip6tnl(u8 *eui, struct net_device *dev)
 
 static int ipv6_generate_eui64(u8 *eui, struct net_device *dev)
 {
+	/* MTK_NET_CHANGES */
+	if (strncmp(dev->name, "ccmni", 2) == 0)
+		return -1;
 	switch (dev->type) {
 	case ARPHRD_ETHER:
 	case ARPHRD_FDDI:
@@ -2204,6 +2219,31 @@ static void  ipv6_try_regen_rndid(struct inet6_dev *idev, struct in6_addr *tmpad
 		ipv6_regen_rndid(idev);
 }
 
+u32 addrconf_rt_table(const struct net_device *dev, u32 default_table) {
+	/* Determines into what table to put autoconf PIO/RIO/default routes
+	 * learned on this device.
+	 *
+	 * - If 0, use the same table for every device. This puts routes into
+	 *   one of RT_TABLE_{PREFIX,INFO,DFLT} depending on the type of route
+	 *   (but note that these three are currently all equal to
+	 *   RT6_TABLE_MAIN).
+	 * - If > 0, use the specified table.
+	 * - If < 0, put routes into table dev->ifindex + (-rt_table).
+	 */
+	struct inet6_dev *idev = in6_dev_get(dev);
+	u32 table;
+	int sysctl = idev->cnf.accept_ra_rt_table;
+	if (sysctl == 0) {
+		table = default_table;
+	} else if (sysctl > 0) {
+		table = (u32) sysctl;
+	} else {
+		table = (unsigned) dev->ifindex + (-sysctl);
+	}
+	in6_dev_put(idev);
+	return table;
+}
+
 /*
  *	Add prefix route.
  */
@@ -2213,7 +2253,7 @@ addrconf_prefix_route(struct in6_addr *pfx, int plen, struct net_device *dev,
 		      unsigned long expires, u32 flags)
 {
 	struct fib6_config cfg = {
-		.fc_table = l3mdev_fib_table(dev) ? : RT6_TABLE_PREFIX,
+		.fc_table = l3mdev_fib_table(dev) ? : addrconf_rt_table(dev, RT6_TABLE_PREFIX),
 		.fc_metric = IP6_RT_PRIO_ADDRCONF,
 		.fc_ifindex = dev->ifindex,
 		.fc_expires = expires,
@@ -2246,7 +2286,7 @@ static struct rt6_info *addrconf_get_prefix_route(const struct in6_addr *pfx,
 	struct fib6_node *fn;
 	struct rt6_info *rt = NULL;
 	struct fib6_table *table;
-	u32 tb_id = l3mdev_fib_table(dev) ? : RT6_TABLE_PREFIX;
+	u32 tb_id = l3mdev_fib_table(dev) ? : addrconf_rt_table(dev, RT6_TABLE_PREFIX);
 
 	table = fib6_get_table(dev_net(dev), tb_id);
 	if (!table)
@@ -2381,8 +2421,8 @@ static void manage_tempaddrs(struct inet6_dev *idev,
 
 static bool is_addr_mode_generate_stable(struct inet6_dev *idev)
 {
-	return idev->addr_gen_mode == IN6_ADDR_GEN_MODE_STABLE_PRIVACY ||
-	       idev->addr_gen_mode == IN6_ADDR_GEN_MODE_RANDOM;
+	return idev->cnf.addr_gen_mode == IN6_ADDR_GEN_MODE_STABLE_PRIVACY ||
+	       idev->cnf.addr_gen_mode == IN6_ADDR_GEN_MODE_RANDOM;
 }
 
 int addrconf_prefix_rcv_add_addr(struct net *net, struct net_device *dev,
@@ -3146,7 +3186,7 @@ static void addrconf_addr_gen(struct inet6_dev *idev, bool prefix_route)
 
 	ipv6_addr_set(&addr, htonl(0xFE800000), 0, 0, 0);
 
-	switch (idev->addr_gen_mode) {
+	switch (idev->cnf.addr_gen_mode) {
 	case IN6_ADDR_GEN_MODE_RANDOM:
 		ipv6_gen_mode_random_init(idev);
 		/* fallthrough */
@@ -3187,7 +3227,8 @@ static void addrconf_dev_config(struct net_device *dev)
 	    (dev->type != ARPHRD_IEEE1394) &&
 	    (dev->type != ARPHRD_TUNNEL6) &&
 	    (dev->type != ARPHRD_6LOWPAN) &&
-	    (dev->type != ARPHRD_NONE)) {
+	    (dev->type != ARPHRD_NONE) &&
+	    (dev->type != ARPHRD_PUREIP)) {
 		/* Alas, we support only Ethernet autoconfiguration. */
 		return;
 	}
@@ -3196,10 +3237,14 @@ static void addrconf_dev_config(struct net_device *dev)
 	if (IS_ERR(idev))
 		return;
 
+	/*mobile device  doesn't  need  auto-linklocal addr  */
+	if (dev->type == ARPHRD_PUREIP)
+		return;
+
 	/* this device type has no EUI support */
 	if (dev->type == ARPHRD_NONE &&
-	    idev->addr_gen_mode == IN6_ADDR_GEN_MODE_EUI64)
-		idev->addr_gen_mode = IN6_ADDR_GEN_MODE_RANDOM;
+	    idev->cnf.addr_gen_mode == IN6_ADDR_GEN_MODE_EUI64)
+		idev->cnf.addr_gen_mode = IN6_ADDR_GEN_MODE_RANDOM;
 
 	addrconf_addr_gen(idev, false);
 }
@@ -3726,14 +3771,27 @@ static void addrconf_rs_timer(unsigned long data)
 			goto put;
 
 		write_lock(&idev->lock);
-		idev->rs_interval = rfc3315_s14_backoff_update(
-			idev->rs_interval, idev->cnf.rtr_solicit_max_interval);
+
+		if (sysctl_optr == MTK_IPV6_VZW_ALL &&
+		    (strncmp(dev->name, "ccmni", 2) == 0))
+			idev->rs_interval = idev->cnf.rtr_solicit_interval;
+		else
+			idev->rs_interval = rfc3315_s14_backoff_update(
+				idev->rs_interval,
+				idev->cnf.rtr_solicit_max_interval);
+
 		/* The wait after the last probe can be shorter */
 		addrconf_mod_rs_timer(idev, (idev->rs_probes ==
 					     idev->cnf.rtr_solicits) ?
 				      idev->cnf.rtr_solicit_delay :
 				      idev->rs_interval);
 	} else {
+		inet6_no_ra_notify(RTM_DELADDR, idev);
+		if (sysctl_optr == MTK_IPV6_VZW_ALL ||
+		    sysctl_optr == MTK_IPV6_EX_RS_INTERVAL) {
+			if (idev->if_flags & IF_RS_VZW_SENT)
+				idev->if_flags &= ~IF_RS_VZW_SENT;
+		}
 		/*
 		 * Note: we do not support deprecated "all on-link"
 		 * assumption any longer.
@@ -3745,6 +3803,42 @@ out:
 	write_unlock(&idev->lock);
 put:
 	in6_dev_put(idev);
+}
+
+struct rt6_info *calc_lft_vzw(struct inet6_ifaddr *ifp, u32 *minimum_lft)
+{
+	struct rt6_info *rt;
+	u32 route_lft;
+
+	rt = rt6_get_dflt_router_expires(ifp->idev->dev);
+	if (rt && (rt->rt6i_flags & RTF_EXPIRES)) {
+		route_lft = (rt->dst.expires - ifp->tstamp) / HZ;
+		*minimum_lft = min(ifp->prefered_lft, route_lft);
+		pr_info("[mtk_net][IPv6] min_lft %lld\n", (u64)(*minimum_lft));
+	} else {
+		*minimum_lft = ifp->prefered_lft;
+	}
+	return rt;
+}
+
+static void calc_next_vzw(struct inet6_ifaddr *ifp, struct rt6_info *rt,
+			  unsigned long *next, unsigned long age,
+			  int is_expires, u32 minimum_lft)
+{
+	if (strncmp(ifp->idev->dev->name, "ccmni", 2) == 0) {
+		if (is_expires || (rt && (rt->rt6i_flags & RTF_EXPIRES))) {
+			if (!(ifp->idev->if_flags & IF_RS_VZW_SENT) &&
+			    age >= (minimum_lft * 3 / 4))
+				inet6_send_rs_vzw(ifp);
+			pr_info("[mtk_net][IPv6] min_lft %lld, age %lld, is_expires %d\n",
+				(u64)minimum_lft, (u64)age, is_expires);
+			if (!(ifp->idev->if_flags & IF_RS_VZW_SENT) &&
+			    time_before(ifp->tstamp +
+					((minimum_lft * 3 / 4) * HZ), *next))
+				*next = ifp->tstamp +
+					((minimum_lft * 3 / 4) * HZ);
+		}
+	}
 }
 
 /*
@@ -4005,8 +4099,15 @@ static void addrconf_dad_completed(struct inet6_ifaddr *ifp, bool bump_id)
 
 		write_lock_bh(&ifp->idev->lock);
 		spin_lock(&ifp->lock);
+
+		if (sysctl_optr == MTK_IPV6_VZW_ALL &&
+		    (strncmp(dev->name, "ccmni", 2) == 0)) {
+			ifp->idev->rs_interval =
+				ifp->idev->cnf.rtr_solicit_interval;
+		} else {
 		ifp->idev->rs_interval = rfc3315_s14_backoff_init(
 			ifp->idev->cnf.rtr_solicit_interval);
+		}
 		ifp->idev->rs_probes = 1;
 		ifp->idev->if_flags |= IF_RS_SENT;
 		addrconf_mod_rs_timer(ifp->idev, ifp->idev->rs_interval);
@@ -4212,6 +4313,46 @@ int ipv6_chk_home_addr(struct net *net, const struct in6_addr *addr)
 }
 #endif
 
+static void inet6_send_rs_vzw(struct inet6_ifaddr *ifp)
+{
+	struct net_device *dev = ifp->idev->dev;
+
+	/*struct inet6_ifaddr *linklocal_ifp = NULL;*/
+	pr_info("[mtk_net][IPv6][%s] dev name:%s\n", __func__, dev->name);
+
+	/*because of using link local address will triger KE
+	 *so this first using global address
+	 */
+	if (ipv6_accept_ra(ifp->idev) &&
+	    ifp->idev->cnf.rtr_solicits > 0 &&
+	    (dev->flags & IFF_LOOPBACK) == 0) {
+		pr_info("[mtk_net][IPv6] send refresh rs: dev name:%s\n",
+			dev->name);
+		ndisc_send_rs(ifp->idev->dev, &ifp->addr,
+			      &in6addr_linklocal_allrouters);
+
+		/*disable  softirq */
+		local_bh_disable();
+		/*Kernel3.18 ifp->idev->rs_probes*/
+		/*Kernel3.10 ifp->probes = 1*/
+		ifp->idev->rs_probes = 1;
+		/*ifp->probes = 1; */
+		ifp->idev->if_flags |= IF_RS_SENT;
+		ifp->idev->if_flags |= IF_RS_VZW_SENT;
+
+		if (ifp->idev->if_flags & IF_RA_RCVD) {
+			pr_info("[mtk_net][IPv6] ifp: has IF_RA_RCVD flag, and will clear it\n");
+			ifp->idev->if_flags &= ~IF_RA_RCVD;
+		}
+		/*Kernel3.10 addrconf_mod_timer
+		 *Kernel3.18 addrconf_mod_rs_timer
+		 */
+		addrconf_mod_rs_timer(ifp->idev,
+				      ifp->idev->cnf.rtr_solicit_interval);
+		local_bh_enable();
+	}
+}
+
 /*
  *	Periodic address status verification
  */
@@ -4234,6 +4375,12 @@ static void addrconf_verify_rtnl(void)
 restart:
 		hlist_for_each_entry_rcu_bh(ifp, &inet6_addr_lst[i], addr_lst) {
 			unsigned long age;
+			u32 min_lft;
+			struct rt6_info *rt = NULL;
+
+			if (sysctl_optr == MTK_IPV6_VZW_ALL ||
+			    sysctl_optr == MTK_IPV6_EX_RS_INTERVAL)
+				rt = calc_lft_vzw(ifp, &min_lft);
 
 			/* When setting preferred_lft to a value not zero or
 			 * infinity, while valid_lft is infinity
@@ -4254,6 +4401,16 @@ restart:
 				ipv6_del_addr(ifp);
 				goto restart;
 			} else if (ifp->prefered_lft == INFINITY_LIFE_TIME) {
+				if (sysctl_optr == MTK_IPV6_VZW_ALL ||
+				    sysctl_optr == MTK_IPV6_EX_RS_INTERVAL) {
+					/*Patch for VzW
+					*prefered_lft is INFINITY scenario
+					*ccmni interface will send RS when
+					*time flow reaches 75% of route_lft
+					*/
+					calc_next_vzw(ifp, rt, &next, age,
+						      0, min_lft);
+				}
 				spin_unlock(&ifp->lock);
 				continue;
 			} else if (age >= ifp->prefered_lft) {
@@ -4309,6 +4466,17 @@ restart:
 				/* ifp->prefered_lft <= ifp->valid_lft */
 				if (time_before(ifp->tstamp + ifp->prefered_lft * HZ, next))
 					next = ifp->tstamp + ifp->prefered_lft * HZ;
+				if (sysctl_optr == MTK_IPV6_VZW_ALL ||
+				    sysctl_optr == MTK_IPV6_EX_RS_INTERVAL) {
+					/*patch for VzW
+					 *prefered_lft is NOT INFINITY scenario
+					 *ccmni interface will send RS when time
+					 *flow reaches 75% of min{prefered_lft,
+					 *route_lft}
+					 */
+					calc_next_vzw(ifp, rt, &next, age,
+						      1, min_lft);
+				}
 				spin_unlock(&ifp->lock);
 			}
 		}
@@ -4958,9 +5126,11 @@ static inline void ipv6_store_devconf(struct ipv6_devconf *cnf,
 	array[DEVCONF_RTR_PROBE_INTERVAL] =
 		jiffies_to_msecs(cnf->rtr_probe_interval);
 #ifdef CONFIG_IPV6_ROUTE_INFO
+	array[DEVCONF_ACCEPT_RA_RT_INFO_MIN_PLEN] = cnf->accept_ra_rt_info_min_plen;
 	array[DEVCONF_ACCEPT_RA_RT_INFO_MAX_PLEN] = cnf->accept_ra_rt_info_max_plen;
 #endif
 #endif
+	array[DEVCONF_ACCEPT_RA_RT_TABLE] = cnf->accept_ra_rt_table;
 	array[DEVCONF_PROXY_NDP] = cnf->proxy_ndp;
 	array[DEVCONF_ACCEPT_SOURCE_ROUTE] = cnf->accept_source_route;
 #ifdef CONFIG_IPV6_OPTIMISTIC_DAD
@@ -4983,6 +5153,7 @@ static inline void ipv6_store_devconf(struct ipv6_devconf *cnf,
 	array[DEVCONF_DROP_UNICAST_IN_L2_MULTICAST] = cnf->drop_unicast_in_l2_multicast;
 	array[DEVCONF_DROP_UNSOLICITED_NA] = cnf->drop_unsolicited_na;
 	array[DEVCONF_KEEP_ADDR_ON_DOWN] = cnf->keep_addr_on_down;
+	array[DEVCONF_ADDR_GEN_MODE] = cnf->addr_gen_mode;
 }
 
 static inline size_t inet6_ifla6_size(void)
@@ -5094,7 +5265,7 @@ static int inet6_fill_ifla6_attrs(struct sk_buff *skb, struct inet6_dev *idev,
 	if (!nla)
 		goto nla_put_failure;
 
-	if (nla_put_u8(skb, IFLA_INET6_ADDR_GEN_MODE, idev->addr_gen_mode))
+	if (nla_put_u8(skb, IFLA_INET6_ADDR_GEN_MODE, idev->cnf.addr_gen_mode))
 		goto nla_put_failure;
 
 	read_lock_bh(&idev->lock);
@@ -5174,8 +5345,14 @@ update_lft:
 
 	if (update_rs) {
 		idev->if_flags |= IF_RS_SENT;
-		idev->rs_interval = rfc3315_s14_backoff_init(
-			idev->cnf.rtr_solicit_interval);
+
+		if (sysctl_optr == MTK_IPV6_VZW_ALL &&
+		    (strncmp(dev->name, "ccmni", 2) == 0))
+			idev->rs_interval = idev->cnf.rtr_solicit_interval;
+		else
+			idev->rs_interval = rfc3315_s14_backoff_init(
+				idev->cnf.rtr_solicit_interval);
+
 		idev->rs_probes = 1;
 		addrconf_mod_rs_timer(idev, idev->rs_interval);
 	}
@@ -5212,6 +5389,26 @@ static int inet6_validate_link_af(const struct net_device *dev,
 	return nla_parse_nested(tb, IFLA_INET6_MAX, nla, inet6_af_policy);
 }
 
+static int check_addr_gen_mode(int mode)
+{
+	if (mode != IN6_ADDR_GEN_MODE_EUI64 &&
+	    mode != IN6_ADDR_GEN_MODE_NONE &&
+	    mode != IN6_ADDR_GEN_MODE_STABLE_PRIVACY &&
+	    mode != IN6_ADDR_GEN_MODE_RANDOM)
+		return -EINVAL;
+	return 1;
+}
+
+static int check_stable_privacy(struct inet6_dev *idev, struct net *net,
+				int mode)
+{
+	if (mode == IN6_ADDR_GEN_MODE_STABLE_PRIVACY &&
+	    !idev->cnf.stable_secret.initialized &&
+	    !net->ipv6.devconf_dflt->stable_secret.initialized)
+		return -EINVAL;
+	return 1;
+}
+
 static int inet6_set_link_af(struct net_device *dev, const struct nlattr *nla)
 {
 	int err = -EINVAL;
@@ -5233,18 +5430,11 @@ static int inet6_set_link_af(struct net_device *dev, const struct nlattr *nla)
 	if (tb[IFLA_INET6_ADDR_GEN_MODE]) {
 		u8 mode = nla_get_u8(tb[IFLA_INET6_ADDR_GEN_MODE]);
 
-		if (mode != IN6_ADDR_GEN_MODE_EUI64 &&
-		    mode != IN6_ADDR_GEN_MODE_NONE &&
-		    mode != IN6_ADDR_GEN_MODE_STABLE_PRIVACY &&
-		    mode != IN6_ADDR_GEN_MODE_RANDOM)
+		if (check_addr_gen_mode(mode) < 0 ||
+		    check_stable_privacy(idev, dev_net(dev), mode) < 0)
 			return -EINVAL;
 
-		if (mode == IN6_ADDR_GEN_MODE_STABLE_PRIVACY &&
-		    !idev->cnf.stable_secret.initialized &&
-		    !dev_net(dev)->ipv6.devconf_dflt->stable_secret.initialized)
-			return -EINVAL;
-
-		idev->addr_gen_mode = mode;
+		idev->cnf.addr_gen_mode = mode;
 		err = 0;
 	}
 
@@ -5486,6 +5676,84 @@ static void ipv6_ifa_notify(int event, struct inet6_ifaddr *ifp)
 	rcu_read_unlock_bh();
 }
 
+/*send no ra netlink msg*/
+static void inet6_no_ra_notify(int event, struct inet6_dev *idev)
+{
+	struct sk_buff *skb;
+	struct net *net = dev_net(idev->dev);
+	int err = -ENOBUFS;
+	size_t length = NLMSG_ALIGN(sizeof(struct ifinfomsg));
+
+	skb = nlmsg_new(length, GFP_ATOMIC);
+	if (!skb)
+		goto errout;
+
+	err = inet6_fill_nora(skb, idev, 0, 0, event);
+	if (err < 0) {
+		/* -EMSGSIZE implies BUG in inet6_prefix_nlmsg_size() */
+		WARN_ON(err == -EMSGSIZE);
+		kfree_skb(skb);
+		goto errout;
+	}
+
+	rtnl_notify(skb, net, 0, RTNLGRP_IPV6_IFADDR, NULL, GFP_ATOMIC);
+	return;
+errout:
+	if (err < 0)
+		rtnl_set_sk_err(net, RTNLGRP_IPV6_IFADDR, err);
+}
+
+/*Fill skb for  no ra  msg*/
+static int inet6_fill_nora(struct sk_buff *skb, struct inet6_dev *idev,
+			   u32 portid, u32 seq, int event)
+{
+	struct nlmsghdr *nlh;
+
+	unsigned int flag = 1;
+	struct in6_addr addr;
+
+	if (sysctl_optr == MTK_IPV6_VZW_ALL ||
+	    sysctl_optr == MTK_IPV6_EX_RS_INTERVAL) {
+		/*This ifi_flags refers to the dev flag in kernel,
+		 *but hereI use it as a valid flag. When ifi_flags
+		 *is zero , it means RA refesh Fail, And When
+		 *ifi_flags is 1, it means RA init Fail! @MTK07384
+		 */
+		/*hdr->ifi_flags = dev_get_flags(dev); */
+		if (idev->if_flags & IF_RS_VZW_SENT) {
+			flag = 0;
+			pr_info("[mtk_net][IPv6] RA refresh Fail\n");
+		} else {
+			flag = 1;
+			pr_info("[mtk_net][IPv6] RA init Fail\n");
+		}
+	}
+
+	nlh = nlmsg_put(skb, portid, seq, event, sizeof(struct ifaddrmsg),
+			flag);
+	if (!nlh)
+		return -EMSGSIZE;
+
+	put_ifaddrmsg(nlh, 64, 01, 01, idev->dev->ifindex);
+
+	/* ipv6 address
+	 * RA refresh Fail - FE80::5A5A:5A22
+	 * RA init Fail - FE80::5A5A:5A23
+	 */
+	addr.in6_u.u6_addr32[0] = 0x000080FE;
+	addr.in6_u.u6_addr32[1] = 0x0;
+	addr.in6_u.u6_addr32[2] = 0x5A005A00;
+	if (flag)
+		addr.in6_u.u6_addr32[3] = 0x23005A00;
+	else
+		addr.in6_u.u6_addr32[3] = 0x22005A00;
+	if (nla_put_in6_addr(skb, IFA_ADDRESS, &addr) < 0)
+		return -EMSGSIZE;
+
+	nlmsg_end(skb, nlh);
+	return 0;
+}
+
 #ifdef CONFIG_SYSCTL
 
 static
@@ -5651,6 +5919,47 @@ int addrconf_sysctl_proxy_ndp(struct ctl_table *ctl, int write,
 	return ret;
 }
 
+static int addrconf_sysctl_addr_gen_mode(struct ctl_table *ctl, int write,
+					 void __user *buffer, size_t *lenp,
+					 loff_t *ppos)
+{
+	int ret = 0;
+	int new_val;
+	struct inet6_dev *idev = (struct inet6_dev *)ctl->extra1;
+	struct net *net = (struct net *)ctl->extra2;
+
+	ret = proc_dointvec(ctl, write, buffer, lenp, ppos);
+
+	if (write) {
+		new_val = *((int *)ctl->data);
+
+		if (check_addr_gen_mode(new_val) < 0)
+			return -EINVAL;
+
+		/* request for default */
+		if (&net->ipv6.devconf_dflt->addr_gen_mode == ctl->data) {
+			ipv6_devconf_dflt.addr_gen_mode = new_val;
+
+		/* request for individual net device */
+		} else {
+			if (!idev)
+				return ret;
+
+			if (check_stable_privacy(idev, net, new_val) < 0)
+				return -EINVAL;
+
+			if (idev->cnf.addr_gen_mode != new_val) {
+				idev->cnf.addr_gen_mode = new_val;
+				rtnl_lock();
+				addrconf_dev_config(idev->dev);
+				rtnl_unlock();
+			}
+		}
+	}
+
+	return ret;
+}
+
 static int addrconf_sysctl_stable_secret(struct ctl_table *ctl, int write,
 					 void __user *buffer, size_t *lenp,
 					 loff_t *ppos)
@@ -5701,14 +6010,14 @@ static int addrconf_sysctl_stable_secret(struct ctl_table *ctl, int write,
 			struct inet6_dev *idev = __in6_dev_get(dev);
 
 			if (idev) {
-				idev->addr_gen_mode =
+				idev->cnf.addr_gen_mode =
 					IN6_ADDR_GEN_MODE_STABLE_PRIVACY;
 			}
 		}
 	} else {
 		struct inet6_dev *idev = ctl->extra1;
 
-		idev->addr_gen_mode = IN6_ADDR_GEN_MODE_STABLE_PRIVACY;
+		idev->cnf.addr_gen_mode = IN6_ADDR_GEN_MODE_STABLE_PRIVACY;
 	}
 
 out:
@@ -5933,6 +6242,13 @@ static const struct ctl_table addrconf_sysctl[] = {
 	},
 #ifdef CONFIG_IPV6_ROUTE_INFO
 	{
+		.procname	= "accept_ra_rt_info_min_plen",
+		.data		= &ipv6_devconf.accept_ra_rt_info_min_plen,
+		.maxlen		= sizeof(int),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec,
+	},
+	{
 		.procname	= "accept_ra_rt_info_max_plen",
 		.data		= &ipv6_devconf.accept_ra_rt_info_max_plen,
 		.maxlen		= sizeof(int),
@@ -5941,6 +6257,13 @@ static const struct ctl_table addrconf_sysctl[] = {
 	},
 #endif
 #endif
+	{
+		.procname	= "accept_ra_rt_table",
+		.data		= &ipv6_devconf.accept_ra_rt_table,
+		.maxlen		= sizeof(int),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec,
+	},
 	{
 		.procname	= "proxy_ndp",
 		.data		= &ipv6_devconf.proxy_ndp,
@@ -6070,7 +6393,13 @@ static const struct ctl_table addrconf_sysctl[] = {
 		.maxlen		= sizeof(int),
 		.mode		= 0644,
 		.proc_handler	= proc_dointvec,
-
+	},
+	{
+		.procname	= "addr_gen_mode",
+		.data		= &ipv6_devconf.addr_gen_mode,
+		.maxlen		= sizeof(int),
+		.mode		= 0644,
+		.proc_handler	= addrconf_sysctl_addr_gen_mode,
 	},
 	{
 		/* sentinel */

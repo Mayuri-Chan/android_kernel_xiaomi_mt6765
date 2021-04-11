@@ -89,6 +89,10 @@
 #include <asm/sections.h>
 #include <asm/cacheflush.h>
 
+#ifdef CONFIG_MTK_RAM_CONSOLE
+#include <mt-plat/mtk_ram_console.h>
+#endif
+
 static int kernel_init(void *);
 
 extern void init_IRQ(void);
@@ -553,6 +557,14 @@ asmlinkage __visible void __init start_kernel(void)
 		 "Interrupts were enabled *very* early, fixing it\n"))
 		local_irq_disable();
 	idr_init_cache();
+
+	/*
+	 * Allow workqueue creation and work item queueing/cancelling
+	 * early.  Work item execution depends on kthreads and starts after
+	 * workqueue_init().
+	 */
+	workqueue_init_early();
+
 	rcu_init();
 
 	/* trace_printk() and trace points may be used after this */
@@ -638,9 +650,8 @@ asmlinkage __visible void __init start_kernel(void)
 	security_init();
 	dbg_late_init();
 	vfs_caches_init();
+	pagecache_init();
 	signals_init();
-	/* rootfs populating might need page-writeback */
-	page_writeback_init();
 	proc_root_init();
 	nsfs_init();
 	cpuset_init();
@@ -764,21 +775,34 @@ static int __init_or_module do_one_initcall_debug(initcall_t fn)
 
 	return ret;
 }
+#ifdef CONFIG_MTPROF
+#include <bootprof.h>
+#else
+#define TIME_LOG_START()
+#define TIME_LOG_END()
+#define bootprof_initcall(fn, ts)
+#endif
 
 int __init_or_module do_one_initcall(initcall_t fn)
 {
 	int count = preempt_count();
 	int ret;
 	char msgbuf[64];
-
+#ifdef CONFIG_MTPROF
+	unsigned long long ts = 0;
+#endif
 	if (initcall_blacklisted(fn))
 		return -EPERM;
 
+#ifdef CONFIG_MTK_RAM_CONSOLE
+	aee_rr_rec_last_init_func((unsigned long)fn);
+#endif
+	TIME_LOG_START();
 	if (initcall_debug)
 		ret = do_one_initcall_debug(fn);
 	else
 		ret = fn();
-
+	TIME_LOG_END();
 	msgbuf[0] = 0;
 
 	if (preempt_count() != count) {
@@ -792,6 +816,7 @@ int __init_or_module do_one_initcall(initcall_t fn)
 	WARN(msgbuf[0], "initcall %pF returned with %s\n", fn, msgbuf);
 
 	add_latent_entropy();
+	bootprof_initcall(fn, ts);
 	return ret;
 }
 
@@ -852,6 +877,9 @@ static void __init do_initcalls(void)
 
 	for (level = 0; level < ARRAY_SIZE(initcall_levels) - 1; level++)
 		do_initcall_level(level);
+#ifdef CONFIG_MTK_RAM_CONSOLE
+	aee_rr_rec_last_init_func(~(unsigned long)(0));
+#endif
 }
 
 /*
@@ -952,7 +980,9 @@ static int __ref kernel_init(void *unused)
 	numa_default_policy();
 
 	rcu_end_inkernel_boot();
-
+#ifdef CONFIG_MTPROF
+	log_boot("Kernel_init_done");
+#endif
 	if (ramdisk_execute_command) {
 		ret = run_init_process(ramdisk_execute_command);
 		if (!ret)
@@ -1006,6 +1036,8 @@ static noinline void __init kernel_init_freeable(void)
 	cad_pid = task_pid(current);
 
 	smp_prepare_cpus(setup_max_cpus);
+
+	workqueue_init();
 
 	do_pre_smp_initcalls();
 	lockup_detector_init();
