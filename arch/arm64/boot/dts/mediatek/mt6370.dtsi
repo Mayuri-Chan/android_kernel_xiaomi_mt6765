@@ -43,7 +43,7 @@
 			aicr = <500000>;	/* uA */
 			mivr = <4400000>;	/* uV */
 			cv = <4350000>;		/* uA */
-			ieoc = <150000>;	/* uA */
+			ieoc = <200000>;	/* uA */
 			safety_timer = <12>;	/* hour */
 			dc_wdt = <4000000>;	/* us */
 			ircmp_resistor = <25000>;	/* uohm */
@@ -153,7 +153,7 @@
 						/* 2: 160ns */
 						/* 3: 200ns */
 			mt,pwm_hys_en = <1>;	/* PWM Input Hysteresis */
-			mt,pwm_hys = <0>;	/* 0: 1 bit, 1: 2 bit */
+			mt,pwm_hys = <1>;	/* 0: 1 bit, 1: 2 bit */
 						/* 2: 4 bit, 3: 6 bit */
 			mt,pwm_avg_cycle = <0>; /* 0: disable avg */
 						/* 1: avg 2 cycle */
@@ -169,7 +169,7 @@
 							/* 1ms, 2ms, 5ms */
 
 			/* we have 11 bit resolution, quantize in driver */
-			mt,max_bled_brightness = <512>; /* maximum 2047 */
+			mt,max_bled_brightness = <682>; /* maximum 2047 */
 
 			mt,bled_curr_scale = <0>;	/* 0: 30mA, 1: 22.5mA */
 							/* 2: 20mA, 3: 17.5mA */
@@ -235,13 +235,13 @@
 
 			/* 1 = Discharge VPOS when turn off */
 			/* 0 = disable */
-			db_vpos_disc = <1>;
+			db_vpos_disc = <0>;
 
 			db_delay = <3>;	/* 0 = no constraint */
 					/* 1 = 0ms */
 					/* 2 = 1ms */
 					/* 3 = 4ms */
-			db_vbst  = <5700>;      /* mV */
+			db_vbst  = <6200>;      /* mV */
 			db_vpos_slew = <1>;	/* 0: 8.54 V/ms */
 						/* 1: 5.84 V/ms */
 						/* 2: 4.83 V/ms */
