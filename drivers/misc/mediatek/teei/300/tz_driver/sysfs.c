@@ -295,12 +295,6 @@ static int load_ut_drv(struct TEEC_UUID *uuid)
 
 	list_add_tail(&new_entry->list, &ut_drv_list);
 
-	if (is_uuid_equal(&new_entry->uuid, &spi_uuid)) {
-		IMSG_DEBUG("spi driver is loaded successful!\n");
-		spi_ready_flag = 1;
-		wake_up(&__wait_spi_wq);
-	}
-
 	goto exit;
 
 fail_get_driver_id:

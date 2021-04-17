@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2015 MediaTek Inc.
+ * Copyright (C) 2019 XiaoMi, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -26,6 +27,7 @@ enum mt65xx_led_type {
 	MT65XX_LED_TYPE_KEYBOARD,
 	MT65XX_LED_TYPE_BUTTON,
 	MT65XX_LED_TYPE_LCD,
+	MT65XX_LED_TYPE_FLASHLIGHT,
 	MT65XX_LED_TYPE_TOTAL,
 };
 
@@ -35,7 +37,8 @@ enum mt65xx_led_mode {
 	MT65XX_LED_MODE_GPIO,
 	MT65XX_LED_MODE_PMIC,
 	MT65XX_LED_MODE_CUST_LCM,
-	MT65XX_LED_MODE_CUST_BLS_PWM
+	MT65XX_LED_MODE_CUST_BLS_PWM,
+	MT65XX_LED_MODE_FLASHLIGHT,
 };
 
 /******************************************************************************

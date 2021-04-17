@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2015 MediaTek Inc.
+ * Copyright (C) 2019 XiaoMi, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -16,6 +17,7 @@
 #endif
 
 #include "lcm_drv.h"
+#include <linux/delay.h>
 /* ---------------------------------------- */
 /* Local Constants */
 /* ---------------------------------------- */
@@ -25,8 +27,8 @@
 #define LCM_DENSITY	(320)
 
 /* physical size in um */
-#define LCM_PHYSICAL_WIDTH    (62000)
-#define LCM_PHYSICAL_HEIGHT   (110000)
+#define LCM_PHYSICAL_WIDTH    (61880)
+#define LCM_PHYSICAL_HEIGHT   (123770)
 
 #define REGFLAG_DELAY	0xFE
 #define REGFLAG_END_OF_TABLE 0xFF
@@ -40,10 +42,10 @@ static struct LCM_UTIL_FUNCS lcm_util = { 0 };
 
 #define SET_RESET_PIN(v)    (lcm_util.set_reset_pin((v)))
 
-#define UDELAY(n) (lcm_util.udelay(n))
-#define MDELAY(n) (lcm_util.mdelay(n))
+#define UDELAY(n)  udelay(n)
+#define MDELAY(n)  mdelay(n)
 
-
+#define FALSE 0u
 /* ------------------------------------------- */
 /* Local Functions */
 /* ------------------------------------------- */
@@ -58,6 +60,9 @@ static struct LCM_UTIL_FUNCS lcm_util = { 0 };
 #define write_regs(addr, pdata, byte_nums) \
 	lcm_util.dsi_write_regs(addr, pdata, byte_nums)
 #define read_reg lcm_util.dsi_read_reg()
+
+#define read_reg_v2(cmd, buffer, buffer_size) \
+		lcm_util.dsi_dcs_read_lcm_reg_v2(cmd, buffer, buffer_size)
 
 
 struct LCM_setting_table {
@@ -93,21 +98,23 @@ static struct LCM_setting_table lcm_initialization_setting[] = {
 	/* SET PASSWORD */
 	{ 0xB9, 3, {0xFF, 0x83, 0x94} },
 
-
 	/* sleep out */
 	{ 0x11, 0, {} },
 	{ REGFLAG_DELAY, 120, {} },
-
-	/* write pwm frequence */
-	{ 0x51, 1, {0xFF} },
-	{ 0xC9, 9, {0x13, 0x00, 0x21, 0x1E, 0x31, 0x1E, 0x00, 0x91, 0x00} },
-	{ REGFLAG_DELAY, 5, {} },
-	{ 0x53, 1, {0x2C} },
-	{ REGFLAG_DELAY, 5, {} },
-
-	/* sleep out */
+	{ 0xBD, 1, {0x01}},
+	{ 0xB1, 1, {0x00}},
+	{ 0xBD, 1, {0x00}},
 	{ 0x29, 0, {} },
 	{ REGFLAG_DELAY, 20, {} },
+	{ 0x51, 1, {0x00}},
+	{ REGFLAG_DELAY, 5, {} },
+	/* write pwm frequence */
+	{ 0xC9, 9, {0x13, 0x00, 0x21, 0x1E, 0x31, 0x1E, 0x00, 0x91, 0x00} },
+	{ REGFLAG_DELAY, 5, {} },
+	{ 0x55, 1, {0x00}},
+	{ REGFLAG_DELAY, 5, {} },
+	{ 0x53, 1, {0x24}},
+	{ REGFLAG_DELAY, 5, {} },
 };
 
 static struct LCM_setting_table lcm_deep_sleep_setting[] = {
@@ -121,39 +128,11 @@ static struct LCM_setting_table lcm_deep_sleep_setting[] = {
 };
 
 static struct LCM_setting_table bl_level[] = {
-	{0x51, 1, {0xFF} },
-	{REGFLAG_END_OF_TABLE, 0x00, {} }
+        {0x51, 1, {0xFF} },
+        {REGFLAG_END_OF_TABLE, 0x00, {} }
 };
 
-static void push_table_cmdq(void *cmdq, struct LCM_setting_table *table,
-	unsigned int count, unsigned char force_update)
-{
-	unsigned int i;
-	unsigned int cmd;
-
-	for (i = 0; i < count; i++) {
-		cmd = table[i].cmd;
-
-		switch (cmd) {
-
-		case REGFLAG_DELAY:
-			if (table[i].count <= 10)
-				MDELAY(table[i].count);
-			else
-				MDELAY(table[i].count);
-			break;
-
-		case REGFLAG_END_OF_TABLE:
-			break;
-
-		default:
-			dsi_set_cmdq_V22(cmdq, cmd, table[i].count,
-				table[i].para_list, force_update);
-		}
-	}
-}
-
-static void push_table(struct LCM_setting_table *table, unsigned int count,
+static void push_table(void *cmdq, struct LCM_setting_table *table, unsigned int count,
 		       unsigned char force_update)
 {
 	unsigned int i;
@@ -174,7 +153,7 @@ static void push_table(struct LCM_setting_table *table, unsigned int count,
 			break;
 
 		default:
-			dsi_set_cmdq_V2(cmd, table[i].count,
+			dsi_set_cmdq_V22(cmdq, cmd, table[i].count,
 				 table[i].para_list, force_update);
 		}
 	}
@@ -230,13 +209,13 @@ static void lcm_get_params(struct LCM_PARAMS *params)
 	params->dsi.vertical_frontporch = 15;
 	params->dsi.vertical_active_line = FRAME_HEIGHT;
 
-	params->dsi.horizontal_sync_active = 24;
-	params->dsi.horizontal_backporch = 160;
-	params->dsi.horizontal_frontporch = 160;
+	params->dsi.horizontal_sync_active = 30;
+	params->dsi.horizontal_backporch = 30;
+	params->dsi.horizontal_frontporch = 30;
 	params->dsi.horizontal_active_pixel = FRAME_WIDTH;
 
 #ifndef CONFIG_FPGA_EARLY_PORTING
-	params->dsi.PLL_CLOCK = 218;
+	params->dsi.PLL_CLOCK = 228;
 /* this value must be in MTK suggested table */
 #else
 	params->dsi.pll_div1 = 0;
@@ -248,38 +227,80 @@ static void lcm_get_params(struct LCM_PARAMS *params)
 
 	params->dsi.clk_lp_per_line_enable = 0;
 	params->dsi.esd_check_enable = 1;
-	params->dsi.customization_esd_check_enable = 0;
-	params->dsi.lcm_esd_check_table[0].cmd = 0x53;
-	params->dsi.lcm_esd_check_table[0].count = 1;
-	params->dsi.lcm_esd_check_table[0].para_list[0] = 0x24;
+	params->dsi.customization_esd_check_enable = 1;
+
+	params->dsi.lcm_esd_check_table[0].cmd = 0x09;
+	params->dsi.lcm_esd_check_table[0].count = 3;
+	params->dsi.lcm_esd_check_table[0].para_list[0] = 0x80;
+	params->dsi.lcm_esd_check_table[0].para_list[1] = 0x73;
+	params->dsi.lcm_esd_check_table[0].para_list[2] = 0x04;
+	params->dsi.lcm_esd_check_table[1].cmd = 0xD9;
+	params->dsi.lcm_esd_check_table[1].count = 1;
+	params->dsi.lcm_esd_check_table[1].para_list[0] = 0x80;
+
+
+	params->vbias_level = 5700000;
+
 }
 
 static void lcm_setbacklight_cmdq(void *handle, unsigned int level)
 {
-	int count = 0;
+        pr_err("%s,hx8394f backlight: level = %d\n", __func__, level);
 
-	pr_debug("%s,hx8394f backlight: level = %d\n", __func__, level);
+        bl_level[0].para_list[0] = level;
 
-	bl_level[0].para_list[0] = level;
-
-	count = sizeof(bl_level) / sizeof(struct LCM_setting_table);
-
-	push_table_cmdq(handle, bl_level, count, 1);
+        push_table(handle, bl_level, sizeof(bl_level) / sizeof(struct LCM_setting_table), 1);
 }
+
+static void lcm_init_power(void)
+{
+	/*pr_debug("lcm_init_power\n");*/
+	display_bias_enable();
+	MDELAY(15);
+
+}
+
+static void lcm_suspend_power(void)
+{
+	/*pr_debug("lcm_suspend_power\n");*/
+	SET_RESET_PIN(0);
+	MDELAY(1);
+	display_bias_disable();
+}
+
+static void lcm_resume_power(void)
+{
+	/*pr_debug("lcm_resume_power\n");*/
+	display_bias_enable();
+	MDELAY(15);
+}
+
+
+#if 0
+static int cabc_status = 0;
+static void setCabcStatus(void)
+{
+	int i;
+	for(i = 0; i< sizeof(lcm_initialization_setting) / sizeof(struct LCM_setting_table); i++){
+		if(lcm_initialization_setting[i].cmd == 0x55){
+			lcm_initialization_setting[i].para_list[0] = cabc_status;
+			break;
+		}
+	}
+}
+#endif
 
 static void lcm_init(void)
 {
 	int a = 0;
 
+	SET_RESET_PIN(0);
+	MDELAY(2);
 	SET_RESET_PIN(1);
 	MDELAY(50);
-	SET_RESET_PIN(0);
-	MDELAY(20);
-	SET_RESET_PIN(1);
-	MDELAY(5);
 
 	a = sizeof(lcm_initialization_setting)/sizeof(struct LCM_setting_table);
-	push_table(lcm_initialization_setting, a, 1);
+	push_table(NULL, lcm_initialization_setting, a, 1);
 }
 
 
@@ -288,7 +309,7 @@ static void lcm_suspend(void)
 	int a = 0;
 
 	a = sizeof(lcm_deep_sleep_setting)/sizeof(struct LCM_setting_table);
-	push_table(lcm_deep_sleep_setting, a, 1);
+	push_table(NULL, lcm_deep_sleep_setting, a, 1);
 }
 
 
@@ -297,13 +318,81 @@ static void lcm_resume(void)
 	lcm_init();
 }
 
+
+static unsigned int lcm_esd_recover(void)
+{
+#ifndef BUILD_LK
+	lcm_resume_power();
+	lcm_init();
+	push_table(NULL, bl_level, sizeof(bl_level) / sizeof(struct LCM_setting_table), 1);
+	return FALSE;
+#else
+	return FALSE;
+#endif
+
+}
+
+#if 0
+static struct LCM_setting_table cabc_level[] = {
+        {0x55, 1, {0x00} },
+        {REGFLAG_END_OF_TABLE, 0x00, {} }
+};
+
+static void lcm_set_cabc_cmdq(void *handle, unsigned int enable)
+{
+	if(enable == 1 || enable == 0 || enable == 3 || enable == 2){
+		pr_debug("in TIANMA panel driver , cabc set to vaule %d\n", enable);
+		cabc_level[0].para_list[0] = enable;
+		push_table(handle, cabc_level, sizeof(cabc_level) / sizeof(struct LCM_setting_table), 1);
+		cabc_status = enable;
+		setCabcStatus();
+	}else{
+		pr_debug("in TIANMA panel driver , cabc set to invalid vaule %d\n", enable);
+	}
+}
+
+
+static void lcm_get_cabc_status(int *status)
+{
+	*status = cabc_status;
+	pr_debug("in TIANMA panel driver , cabc get to %d\n", cabc_status);
+}
+#endif
+
+#if 0
+static void lcm_get_cabc_status(int *status)
+{
+	unsigned char buffer[2] = {0};
+	unsigned int array[16] = {0};
+
+	array[0] = 0x00013700;	/* read id return two byte,cabc mode and 0 */
+	dsi_set_cmdq(array, 1, 1);
+
+	read_reg_v2(0x56, buffer, 1);
+
+	pr_debug("read cabc %x,%x\n",buffer[0],buffer[1]);
+
+	pr_debug("in TIANMA panel driver , cabc get to %d\n", buffer[0]);
+	*status = buffer[0];
+}
+#endif
+
+
 struct LCM_DRIVER hx8394f_hd720_dsi_vdo_tianma_lcm_drv = {
 
 	.name = "hx8394f_hd720_dsi_vdo_tianma",
 	.set_util_funcs = lcm_set_util_funcs,
 	.get_params = lcm_get_params,
+	.init_power = lcm_init_power,
+	.resume_power = lcm_resume_power,
+	.suspend_power = lcm_suspend_power,
+	.esd_recover = lcm_esd_recover,
 	.init = lcm_init,
 	.suspend = lcm_suspend,
 	.resume = lcm_resume,
 	.set_backlight_cmdq = lcm_setbacklight_cmdq,
+
+	//.set_cabc_cmdq = lcm_set_cabc_cmdq,
+	//.get_cabc_status = lcm_get_cabc_status,
+
 };

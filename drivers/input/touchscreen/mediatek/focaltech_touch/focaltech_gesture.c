@@ -3,6 +3,7 @@
  * FocalTech TouchScreen driver.
  *
  * Copyright (c) 2010-2017, Focaltech Ltd. All rights reserved.
+ * Copyright (C) 2019 XiaoMi, Inc.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -87,12 +88,14 @@ struct fts_gesture_st {
     u16 coordinate_x[FTS_GESTRUE_POINTS];
     u16 coordinate_y[FTS_GESTRUE_POINTS];
     u8 mode;
+    u8 active;  /*gesture actutally work*/
 };
 
 /*****************************************************************************
 * Static variables
 *****************************************************************************/
-static struct fts_gesture_st fts_gesture_data;
+struct fts_gesture_st fts_gesture_data;
+struct gesture_struct gesture_data={0,0};
 
 /*****************************************************************************
 * Global variable or extern global variabls/functions
@@ -294,12 +297,24 @@ static void fts_gesture_report(struct input_dev *input_dev, int gesture_id)
     }
     /* report event key */
     if (gesture != -1) {
+#if 0
         FTS_DEBUG("Gesture Code=%d", gesture);
         input_report_key(input_dev, gesture, 1);
         input_sync(input_dev);
         input_report_key(input_dev, gesture, 0);
         input_sync(input_dev);
-    }
+#else
+	if (gesture_id == GESTURE_DOUBLECLICK){
+	    FTS_DEBUG("Gesture Code=%d", gesture);
+	    input_report_key(input_dev, DOUBLE_CLICK, 1);
+	    input_sync(input_dev);
+	    input_report_key(input_dev, DOUBLE_CLICK, 0);
+	    input_sync(input_dev);
+	}
+
+#endif
+
+	}
 
     FTS_FUNC_EXIT();
 }
@@ -409,7 +424,7 @@ int fts_gesture_readdata(struct fts_ts_data *ts_data)
 *****************************************************************************/
 void fts_gesture_recovery(struct i2c_client *client)
 {
-    if (fts_gesture_data.mode == ENABLE) {
+    if (fts_gesture_data.mode == ENABLE && fts_gesture_data.active == ENABLE) {
         fts_i2c_write_reg(client, 0xD1, 0xff);
         fts_i2c_write_reg(client, 0xD2, 0xff);
         fts_i2c_write_reg(client, 0xD5, 0xff);
@@ -456,7 +471,7 @@ int fts_gesture_suspend(struct i2c_client *client)
 
     if (i >= 5) {
         FTS_ERROR("[GESTURE]Enter into gesture(suspend) failed!\n");
-        fts_gesture_data.mode = DISABLE;
+        fts_gesture_data.active = DISABLE;
         return -EIO;
     }
 
@@ -464,7 +479,7 @@ int fts_gesture_suspend(struct i2c_client *client)
     if (ret) {
         FTS_INFO("enable_irq_wake(irq:%d) failed", client->irq);
     }
-
+    fts_gesture_data.active = ENABLE;
     FTS_INFO("[GESTURE]Enter into gesture(suspend) successfully!");
     FTS_FUNC_EXIT();
     return 0;
@@ -489,7 +504,13 @@ int fts_gesture_resume(struct i2c_client *client)
         FTS_DEBUG("gesture is disabled");
         return -EINVAL;
     }
+    
+    if (fts_gesture_data.active == DISABLE) {
+        FTS_DEBUG("gesture in suspend is failed, no running fts_gesture_resume");
+        return -EINVAL;
+    }
 
+    fts_gesture_data.active = DISABLE;
     for (i = 0; i < 5; i++) {
         fts_i2c_write_reg(client, FTS_REG_GESTURE_EN, DISABLE);
         msleep(1);
@@ -500,7 +521,6 @@ int fts_gesture_resume(struct i2c_client *client)
 
     if (i >= 5) {
         FTS_ERROR("[GESTURE]Clear gesture(resume) failed!\n");
-        fts_gesture_data.mode = ENABLE;
         return -EIO;
     }
 
@@ -514,6 +534,107 @@ int fts_gesture_resume(struct i2c_client *client)
     return 0;
 }
 
+#if 1
+static ssize_t gesture_read(struct file *file, char __user * page, size_t size, loff_t * ppos)
+{
+	int num;
+
+	if(*ppos) //CMD call again
+		return 0;
+
+	 num = sprintf(page,"%d\n",gesture_data.gesture_all_switch);
+	*ppos += num;
+
+	 return num;
+}
+static ssize_t gesture_write(struct file *filp, const char __user * buff, size_t len, loff_t * off)
+{
+    int ret;
+    char temp[20]="";
+
+    ret = copy_from_user(temp, buff, len);
+    if (ret) {
+	FTS_ERROR("<%s> copy_from_user failed.\n", __func__);
+        return -EPERM;
+    }
+
+    FTS_DEBUG("%s copy_from_user :%s\n",__func__,temp);
+
+    ret = kstrtouint(temp, 0, &gesture_data.gesture_all_switch);
+    if (ret){
+	FTS_ERROR("kstrtouint failed.\n");
+        return -EFAULT;
+     }
+    
+    FTS_DEBUG("%s gesture_data.gesture_all_switch :%d\n",__func__,gesture_data.gesture_all_switch);
+
+    
+    return len;
+}
+static const struct file_operations gesture_fops = {
+         .owner = THIS_MODULE,
+         .read = gesture_read,
+         .write = gesture_write,
+};
+
+static ssize_t gesture_data_read(struct file *file, char __user * page, size_t size, loff_t * ppos)
+{
+	int num;
+
+	if(*ppos) //CMD call again
+		return 0;
+
+	 num = sprintf(page,"K\n");
+	*ppos += num;
+
+	 return num;
+}
+
+static ssize_t gesture_data_write(struct file *filp, const char __user * buff, size_t len, loff_t * off)
+{
+    return len;
+}
+
+static const struct file_operations gesture_data_fops = {
+         .owner = THIS_MODULE,
+         .read = gesture_data_read,
+         .write = gesture_data_write,
+};
+
+int gesture_init(struct input_dev *input_dev)
+{
+    struct proc_dir_entry *proc_entry = NULL;
+    struct proc_dir_entry *proc_data = NULL;
+    struct proc_dir_entry *parent;
+     
+    parent = proc_mkdir("gesture", NULL);
+    if (!parent) {
+        pr_err("%s: failed to create proc entry\n", __func__);
+        return -ENOMEM;
+    }
+
+    proc_entry = proc_create(GESTURE_NODE, 0666, parent, &gesture_fops);
+    if (proc_entry == NULL) {
+	FTS_ERROR("CAN't create proc entry /proc/%s !", GESTURE_NODE);
+	return -1;
+    } else {
+	FTS_DEBUG("Created proc entry /proc/%s !", GESTURE_NODE);
+    }
+
+    proc_data = proc_create(GESTURE_DATA, 0666, parent, &gesture_data_fops);
+    if (proc_data == NULL) {
+	FTS_ERROR("CAN't create proc entry /proc/%s !", GESTURE_DATA);
+	return -1;
+    } else {
+	FTS_DEBUG("Created proc entry /proc/%s !", GESTURE_DATA);
+    }
+
+    
+    return 0;
+}
+
+#endif
+
 /*****************************************************************************
 *   Name: fts_gesture_init
 *  Brief:
@@ -525,7 +646,7 @@ int fts_gesture_init(struct fts_ts_data *ts_data)
 {
     struct i2c_client *client = ts_data->client;
     struct input_dev *input_dev = ts_data->input_dev;
-
+#if 0
     FTS_FUNC_ENTER();
     input_set_capability(input_dev, EV_KEY, KEY_POWER);
     input_set_capability(input_dev, EV_KEY, KEY_GESTURE_U);
@@ -557,9 +678,15 @@ int fts_gesture_init(struct fts_ts_data *ts_data)
     __set_bit(KEY_GESTURE_V, input_dev->keybit);
     __set_bit(KEY_GESTURE_C, input_dev->keybit);
     __set_bit(KEY_GESTURE_Z, input_dev->keybit);
+#else
+	input_set_capability(input_dev, EV_KEY,DOUBLE_CLICK);
+    __set_bit(DOUBLE_CLICK, input_dev->keybit);
+#endif
+	gesture_init(input_dev);
 
     fts_create_gesture_sysfs(client);
     fts_gesture_data.mode = ENABLE;
+    fts_gesture_data.active = DISABLE;
 
     FTS_FUNC_EXIT();
     return 0;

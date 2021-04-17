@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2015 MediaTek Inc.
+ * Copyright (C) 2019 XiaoMi, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -1134,6 +1135,9 @@ struct LCM_DRIVER *lcm_driver_list[] = {
 #endif
 #if defined(ILI9881C_HDP_DSI_VDO_ILITEK_RT5081_EBBG)
 	&ili9881c_hdp_dsi_vdo_ilitek_rt5081_lcm_drv_ebbg,
+#endif
+#if defined(ILI9881C_HDP_DSI_VDO_ILITEK_RT5081_BOE)
+	&ili9881c_hdp_dsi_vdo_ilitek_rt5081_lcm_drv_boe,
 #endif
 #if defined(HX8394F_HD720_DSI_VDO_TIANMA)
 	&hx8394f_hd720_dsi_vdo_tianma_lcm_drv,

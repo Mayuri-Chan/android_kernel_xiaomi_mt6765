@@ -16,6 +16,6 @@ obj-$(CONFIG_TOUCHSCREEN_MTK_FOCALTECH_TS)    +=  focaltech_ex_mode.o
 obj-$(CONFIG_TOUCHSCREEN_MTK_FOCALTECH_TS)    +=  focaltech_proximity.o
 obj-$(CONFIG_TOUCHSCREEN_MTK_FOCALTECH_TS)    +=  focaltech_i2c.o
 obj-$(CONFIG_TOUCHSCREEN_MTK_FOCALTECH_TS)    +=  focaltech_point_report_check.o
-
-# obj-$(CONFIG_TOUCHSCREEN_MTK_FOCALTECH_TS) +=     focaltech_test/
+#bug 333216 add by tangruiliang.wt for tp open short test in factory  20180118
+obj-$(CONFIG_TOUCHSCREEN_MTK_FOCALTECH_TS) +=     focaltech_test/
 obj-$(CONFIG_TOUCHSCREEN_MTK_FOCALTECH_TS) +=     focaltech_flash/

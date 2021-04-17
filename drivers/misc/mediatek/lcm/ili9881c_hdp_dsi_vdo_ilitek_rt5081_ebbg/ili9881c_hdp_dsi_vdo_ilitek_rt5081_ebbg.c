@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2015 MediaTek Inc.
+ * Copyright (C) 2019 XiaoMi, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -34,13 +35,13 @@
 
 
 #define LCM_ID (0x98)
-
+#include <linux/delay.h>
 static const unsigned int BL_MIN_LEVEL = 20;
 static struct LCM_UTIL_FUNCS lcm_util;
 
 #define SET_RESET_PIN(v)	(lcm_util.set_reset_pin((v)))
-#define MDELAY(n)		(lcm_util.mdelay(n))
-#define UDELAY(n)		(lcm_util.udelay(n))
+#define MDELAY(n)		mdelay(n)
+#define UDELAY(n)		udelay(n)
 
 
 #define dsi_set_cmdq_V22(cmdq, cmd, count, ppara, force_update) \
@@ -80,8 +81,8 @@ static const unsigned char LCD_MODULE_ID = 0x01;
 #define FRAME_WIDTH										(720)
 #define FRAME_HEIGHT									(1440)
 
-#define LCM_PHYSICAL_WIDTH									(64800)
-#define LCM_PHYSICAL_HEIGHT									(129600)
+#define LCM_PHYSICAL_WIDTH									(61880)
+#define LCM_PHYSICAL_HEIGHT									(123770)
 
 #define REGFLAG_DELAY		0xFFFC
 #define REGFLAG_UDELAY	0xFFFB
@@ -106,10 +107,10 @@ struct LCM_setting_table {
 };
 
 static struct LCM_setting_table lcm_suspend_setting[] = {
+	{ 0xFF, 0x03, {0x98, 0x81, 0x00} },
 	{0x28, 0, {} },
+	{REGFLAG_DELAY, 20, {} },
 	{0x10, 0, {} },
-	{REGFLAG_DELAY, 120, {} },
-	{0x4F, 1, {0x01} },
 	{REGFLAG_DELAY, 120, {} }
 };
 
@@ -118,223 +119,20 @@ static struct LCM_setting_table init_setting_cmd[] = {
 };
 
 static struct LCM_setting_table init_setting_vdo[] = {
-	{ 0xFF, 0x03, {0x98, 0x81, 0x03} },
-	/* GIP_1 */
-	{ 0x01, 0x01, {0x00} },
-	{ 0x02, 0x01, {0x00} },
-	{ 0x03, 0x01, {0x53} },
-	{ 0x04, 0x01, {0x13} },
-	{ 0x05, 0x01, {0x00} },
-	{ 0x06, 0x01, {0x03} },
-	{ 0x07, 0x01, {0x02} },
-	{ 0x08, 0x01, {0x00} },
-	{ 0x09, 0x01, {0x28} },
-	{ 0x0a, 0x01, {0x28} },
-	{ 0x0b, 0x01, {0x00} },
-	{ 0x0c, 0x01, {0x01} },
-	{ 0x0d, 0x01, {0x00} },
-	{ 0x0e, 0x01, {0x00} },
-	{ 0x0f, 0x01, {0x28} },
-	{ 0x10, 0x01, {0x28} },
+		/* CMD_Page 0 */
+	{ 0xFF, 0x03, {0x98, 0x81, 0x00} },
 	{ 0x11, 0x01, {0x00} },
-	{ 0x12, 0x01, {0x00} },
-	{ 0x13, 0x01, {0x00} },
-	{ 0x14, 0x01, {0x00} },
-	{ 0x15, 0x01, {0x00} },
-	{ 0x16, 0x01, {0x00} },
-	{ 0x17, 0x01, {0x00} },
-	{ 0x18, 0x01, {0x00} },
-	{ 0x19, 0x01, {0x00} },
-	{ 0x1a, 0x01, {0x00} },
-	{ 0x1b, 0x01, {0x00} },
-	{ 0x1c, 0x01, {0x00} },
-	{ 0x1d, 0x01, {0x00} },
-	{ 0x1e, 0x01, {0x44} },
-	{ 0x1f, 0x01, {0x80} },
-	{ 0x20, 0x01, {0x01} },
-	{ 0x21, 0x01, {0x02} },
-	{ 0x22, 0x01, {0x00} },
-	{ 0x23, 0x01, {0x00} },
-	{ 0x24, 0x01, {0x00} },
-	{ 0x25, 0x01, {0x00} },
-	{ 0x26, 0x01, {0x00} },
-	{ 0x27, 0x01, {0x00} },
-	{ 0x28, 0x01, {0x33} },
-	{ 0x29, 0x01, {0x03} },
-	{ 0x2a, 0x01, {0x00} },
-	{ 0x2b, 0x01, {0x00} },
-	{ 0x2c, 0x01, {0x00} },
-	{ 0x2d, 0x01, {0x00} },
-	{ 0x2e, 0x01, {0x00} },
-	{ 0x2f, 0x01, {0x00} },
-	{ 0x30, 0x01, {0x00} },
-	{ 0x31, 0x01, {0x00} },
-	{ 0x32, 0x01, {0x00} },
-	{ 0x33, 0x01, {0x00} },
-	{ 0x34, 0x01, {0x04} },
-	{ 0x35, 0x01, {0x00} },
-	{ 0x36, 0x01, {0x00} },
-	{ 0x37, 0x01, {0x00} },
-	{ 0x38, 0x01, {0x3c} },
-	{ 0x39, 0x01, {0x00} },
-	{ 0x3a, 0x01, {0x40} },
-	{ 0x3b, 0x01, {0x00} },
-	{ 0x3c, 0x01, {0x00} },
-	{ 0x3d, 0x01, {0x00} },
-	{ 0x3e, 0x01, {0x00} },
-	{ 0x3f, 0x01, {0x00} },
-	{ 0x40, 0x01, {0x00} },
-	{ 0x41, 0x01, {0x00} },
-	{ 0x42, 0x01, {0x00} },
-	{ 0x43, 0x01, {0x00} },
-	{ 0x44, 0x01, {0x00} },
-	{REGFLAG_UDELAY, 100, {} },
-	/* GIP_2 */
-	{ 0x50, 0x01, {0x01} },
-	{ 0x51, 0x01, {0x23} },
-	{ 0x52, 0x01, {0x45} },
-	{ 0x53, 0x01, {0x67} },
-	{ 0x54, 0x01, {0x89} },
-	{ 0x55, 0x01, {0xab} },
-	{ 0x56, 0x01, {0x01} },
-	{ 0x57, 0x01, {0x23} },
-	{ 0x58, 0x01, {0x45} },
-	{ 0x59, 0x01, {0x67} },
-	{ 0x5a, 0x01, {0x89} },
-	{ 0x5b, 0x01, {0xab} },
-	{ 0x5c, 0x01, {0xcd} },
-	{ 0x5d, 0x01, {0xef} },
-	{REGFLAG_UDELAY, 100, {} },
-	/* GIP_3 */
-	{ 0x5e, 0x01, {0x11} },
-	{ 0x5f, 0x01, {0x01} },
-	{ 0x60, 0x01, {0x00} },
-	{ 0x61, 0x01, {0x15} },
-	{ 0x62, 0x01, {0x14} },
-	{ 0x63, 0x01, {0x0c} },
-	{ 0x64, 0x01, {0x0d} },
-	{ 0x65, 0x01, {0x0e} },
-	{ 0x66, 0x01, {0x0f} },
-	{ 0x67, 0x01, {0x06} },
-	{ 0x68, 0x01, {0x02} },
-	{ 0x69, 0x01, {0x02} },
-	{ 0x6a, 0x01, {0x02} },
-	{ 0x6b, 0x01, {0x02} },
-	{ 0x6c, 0x01, {0x02} },
-	{ 0x6d, 0x01, {0x02} },
-	{ 0x6e, 0x01, {0x08} },
-	{ 0x6f, 0x01, {0x02} },
-	{ 0x70, 0x01, {0x02} },
-	{ 0x71, 0x01, {0x02} },
-	{ 0x72, 0x01, {0x02} },
-	{ 0x73, 0x01, {0x02} },
-	{ 0x74, 0x01, {0x02} },
-	{ 0x75, 0x01, {0x01} },
-	{ 0x76, 0x01, {0x00} },
-	{ 0x77, 0x01, {0x15} },
-	{ 0x78, 0x01, {0x14} },
-	{ 0x79, 0x01, {0x0C} },
-	{ 0x7a, 0x01, {0x0D} },
-	{ 0x7b, 0x01, {0x0e} },
-	{ 0x7c, 0x01, {0x0f} },
-	{ 0x7d, 0x01, {0x08} },
-	{ 0x7e, 0x01, {0x02} },
-	{ 0x7f, 0x01, {0x02} },
-	{ 0x80, 0x01, {0x02} },
-	{ 0x81, 0x01, {0x02} },
-	{ 0x82, 0x01, {0x02} },
-	{ 0x83, 0x01, {0x02} },
-	{ 0x84, 0x01, {0x06} },
-	{ 0x85, 0x01, {0x02} },
-	{ 0x86, 0x01, {0x02} },
-	{ 0x87, 0x01, {0x02} },
-	{ 0x88, 0x01, {0x02} },
-	{ 0x89, 0x01, {0x02} },
-	{ 0x8A, 0x01, {0x02} },
-	{REGFLAG_UDELAY, 100, {} },
-	/* CMD_Page 4 */
-	{ 0xFF, 0x03, {0x98, 0x81, 0x04} },
-	{ 0x6C, 0x01, {0x15} },
-	{ 0x6E, 0x01, {0x2b} },
-	{ 0x6F, 0x01, {0x35} },
-	{ 0x35, 0x01, {0x1f} },
-	{ 0x3A, 0x01, {0x24} },
-	{ 0x8D, 0x01, {0x14} },
-	{ 0x87, 0x01, {0xBA} },
-	{ 0x26, 0x01, {0x76} },
-	{ 0xB2, 0x01, {0xD1} },
-	{ 0xB5, 0x01, {0x06} },
-	{ 0x33, 0x01, {0x14} },
-	{ 0x7a, 0x01, {0x10} },
-	{REGFLAG_UDELAY, 100, {} },
-	/* CMD_Page 1 */
-	{ 0xFF, 0x03, {0x98, 0x81, 0x01} },
-	{ 0x22, 0x01, {0x0A} },
-	{ 0x31, 0x01, {0x00} },
-	{ 0x53, 0x01, {0x83} },
-	{ 0x55, 0x01, {0x9C} },
-	{ 0x50, 0x01, {0xC7} },
-	{ 0x51, 0x01, {0xC4} },
-	{ 0x60, 0x01, {0x1A} },
-	{ 0x62, 0x01, {0x00} },
-	{ 0x63, 0x01, {0x00} },
-	{ 0x2E, 0x01, {0xF0} },
-	/* ============Gamma START============= */
-	/* Pos Register */
-	{ 0xA0, 0x01, {0x02} },
-	{ 0xA1, 0x01, {0x22} },
-	{ 0xA2, 0x01, {0x31} },
-	{ 0xA3, 0x01, {0x15} },
-	{ 0xA4, 0x01, {0x19} },
-	{ 0xA5, 0x01, {0x2B} },
-	{ 0xA6, 0x01, {0x1F} },
-	{ 0xA7, 0x01, {0x20} },
-	{ 0xA8, 0x01, {0x92} },
-	{ 0xA9, 0x01, {0x1C} },
-	{ 0xAA, 0x01, {0x28} },
-	{ 0xAB, 0x01, {0x7C} },
-	{ 0xAC, 0x01, {0x1B} },
-	{ 0xAD, 0x01, {0x1B} },
-	{ 0xAE, 0x01, {0x4F} },
-	{ 0xAF, 0x01, {0x23} },
-	{ 0xB0, 0x01, {0x29} },
-	{ 0xB1, 0x01, {0x56} },
-	{ 0xB2, 0x01, {0x5F} },
-	{ 0xB3, 0x01, {0x3F} },
-	/* Neg Register */
-	{ 0xC0, 0x01, {0x02} },
-	{ 0xC1, 0x01, {0x22} },
-	{ 0xC2, 0x01, {0x31} },
-	{ 0xC3, 0x01, {0x15} },
-	{ 0xC4, 0x01, {0x19} },
-	{ 0xC5, 0x01, {0x2B} },
-	{ 0xC6, 0x01, {0x1F} },
-	{ 0xC7, 0x01, {0x20} },
-	{ 0xC8, 0x01, {0x92} },
-	{ 0xC9, 0x01, {0x1C} },
-	{ 0xCA, 0x01, {0x28} },
-	{ 0xCB, 0x01, {0x7C} },
-	{ 0xCC, 0x01, {0x1B} },
-	{ 0xCD, 0x01, {0x1B} },
-	{ 0xCE, 0x01, {0x4F} },
-	{ 0xCF, 0x01, {0x23} },
-	{ 0xD0, 0x01, {0x29} },
-	{ 0xD1, 0x01, {0x56} },
-	{ 0xD2, 0x01, {0x5F} },
-	{ 0xD3, 0x01, {0x3F} },
-	/* add for write pwm frequence */
-	{ 0xFF, 0x03, {0x98, 0x81, 0x02} },
-	{ 0x06, 0x01, {0x00} },
-	{ 0x07, 0x01, {0x00} },
 	{REGFLAG_DELAY, 120, {} },
-	/* ============ Gamma END=========== */
-	/* CMD_Page 0 */
+	{ 0xFF, 0x03, {0x98, 0x81, 0x04} },
+	{ 0x38, 0x01, {0x01} },
+	{ 0x39, 0x01, {0x00} },
+	{ 0xFF, 0x03, {0x98, 0x81, 0x02} },
+	{ 0x06, 0x01, {0x30} },
+	{ 0x07, 0x01, {0x07} },
 	{ 0xFF, 0x03, {0x98, 0x81, 0x00} },
 	{ 0x35, 0x01, {0x00} },
-	{ 0x11, 0x01, {0x00} },
-	/* { 0x51, 0x02, {0x0F, 0xFF} }, */
 	{ 0x53, 0x01, {0x2C} },
-	{REGFLAG_DELAY, 120, {} },
+	{ 0x55, 0x01, {0x00} },
 	{ 0x29, 0x01, {0x00} },
 	{REGFLAG_DELAY, 20, {} }
 };
@@ -349,6 +147,7 @@ static struct LCM_setting_table lcm_set_window[] = {
 #if 0
 static struct LCM_setting_table lcm_sleep_out_setting[] = {
 	/* Sleep Out */
+	{ 0xFF, 0x03, {0x98, 0x81, 0x00} },
 	{0x11, 1, {0x00} },
 	{REGFLAG_DELAY, 120, {} },
 
@@ -360,6 +159,7 @@ static struct LCM_setting_table lcm_sleep_out_setting[] = {
 
 static struct LCM_setting_table lcm_deep_sleep_mode_in_setting[] = {
 	/* Display off sequence */
+	{ 0xFF, 0x03, {0x98, 0x81, 0x00} },
 	{0x28, 1, {0x00} },
 	{REGFLAG_DELAY, 20, {} },
 
@@ -370,10 +170,9 @@ static struct LCM_setting_table lcm_deep_sleep_mode_in_setting[] = {
 };
 #endif
 static struct LCM_setting_table bl_level[] = {
-	/* { 0xFF, 0x03, {0x98, 0x81, 0x00} }, */
-	{0x51, 2, {0x0F, 0xFF} },
-	/* {0x53, 1, {0x2C} }, */
-	{REGFLAG_END_OF_TABLE, 0x00, {} }
+	{ 0xFF, 0x03, {0x98, 0x81, 0x00} },
+	{ 0x51, 0x02, {0x0F, 0xFF} },
+	{ REGFLAG_END_OF_TABLE, 0x00, {} }
 };
 
 static void push_table(void *cmdq, struct LCM_setting_table *table,
@@ -455,24 +254,24 @@ static void lcm_get_params(struct LCM_PARAMS *params)
 	params->dsi.PS = LCM_PACKED_PS_24BIT_RGB888;
 
 	params->dsi.vertical_sync_active = 4;
-	params->dsi.vertical_backporch = 16;
+	params->dsi.vertical_backporch = 18;
 	params->dsi.vertical_frontporch = 40;
-	params->dsi.vertical_frontporch_for_low_power = 540;
+	//params->dsi.vertical_frontporch_for_low_power = 540;/*disable dynamic frame rate*/
 	params->dsi.vertical_active_line = FRAME_HEIGHT;
 
 	params->dsi.horizontal_sync_active = 20;
-	params->dsi.horizontal_backporch = 80;
-	params->dsi.horizontal_frontporch = 80;
+	params->dsi.horizontal_backporch = 40;
+	params->dsi.horizontal_frontporch = 56;
 	params->dsi.horizontal_active_pixel = FRAME_WIDTH;
 	/*params->dsi.ssc_disable = 1;*/
 #ifndef CONFIG_FPGA_EARLY_PORTING
 #if (LCM_DSI_CMD_MODE)
 	params->dsi.PLL_CLOCK = 220;	/* this value must be in MTK suggested table */
 #else
-	params->dsi.PLL_CLOCK = 255;	/* this value must be in MTK suggested table */
+	params->dsi.PLL_CLOCK = 245;	/* this value must be in MTK suggested table */
 #endif
 	params->dsi.PLL_CK_CMD = 220;
-	params->dsi.PLL_CK_VDO = 255;
+	params->dsi.PLL_CK_VDO = 245;
 #else
 	params->dsi.pll_div1 = 0;
 	params->dsi.pll_div2 = 0;
@@ -480,16 +279,21 @@ static void lcm_get_params(struct LCM_PARAMS *params)
 #endif
 	params->dsi.clk_lp_per_line_enable = 0;
 	params->dsi.esd_check_enable = 1;
-	params->dsi.customization_esd_check_enable = 0;
-	params->dsi.lcm_esd_check_table[0].cmd = 0x0A;
-	params->dsi.lcm_esd_check_table[0].count = 1;
-	params->dsi.lcm_esd_check_table[0].para_list[0] = 0x9C;
+	params->dsi.customization_esd_check_enable = 1;
+	params->dsi.lcm_esd_check_table[0].cmd = 0x09;
+	params->dsi.lcm_esd_check_table[0].count = 3;
+	params->dsi.lcm_esd_check_table[0].para_list[0] = 0x80;
+	params->dsi.lcm_esd_check_table[0].para_list[1] = 0x03;
+	params->dsi.lcm_esd_check_table[0].para_list[2] = 0x06;
 
 #ifdef CONFIG_MTK_ROUND_CORNER_SUPPORT
-	params->round_corner_en = 1;
+	params->round_corner_en = 0;
 	params->corner_pattern_width = 720;
 	params->corner_pattern_height = 32;
 #endif
+
+	params->vbias_level = 5500000;
+
 }
 
 static void lcm_init_power(void)
@@ -514,7 +318,7 @@ static void lcm_init_power(void)
 	MDELAY(20);
 #else
 	display_bias_enable();
-
+	MDELAY(15);
 #endif
 }
 
@@ -531,6 +335,8 @@ static void lcm_suspend_power(void)
 
 	mt_set_gpio_out(GPIO25_LCM_PO_EN, GPIO_OUT_ZERO);
 #else
+	SET_RESET_PIN(0);
+	MDELAY(2);
 	display_bias_disable();
 
 #endif
@@ -541,9 +347,24 @@ static void lcm_resume_power(void)
 	/*pr_debug("lcm_resume_power\n");*/
 
 	/*lcm_init_power();*/
-	SET_RESET_PIN(0);
 	display_bias_enable();
+	MDELAY(15);
 }
+
+
+#if 0
+static int cabc_status = 0;
+static void setCabcStatus(void)
+{
+	int i;
+	for(i = 0; i< sizeof(init_setting_vdo) / sizeof(struct LCM_setting_table); i++){
+		if(init_setting_vdo[i].cmd == 0x55){
+			init_setting_vdo[i].para_list[0] = cabc_status;
+			break;
+		}
+	}
+}
+#endif
 
 static void lcm_init(void)
 {
@@ -561,15 +382,12 @@ static void lcm_init(void)
 	mt_set_gpio_out(GPIO45_LCM_RESET, GPIO_OUT_ONE);
 	MDELAY(20);
 #else
-	SET_RESET_PIN(0);
-	MDELAY(15);
 	SET_RESET_PIN(1);
 	MDELAY(1);
 	SET_RESET_PIN(0);
-	MDELAY(10);
-
+	MDELAY(1);
 	SET_RESET_PIN(1);
-	MDELAY(10);
+	MDELAY(15);
 	if (lcm_dsi_mode == CMD_MODE) {
 		push_table(NULL, init_setting_cmd, sizeof(init_setting_cmd) / sizeof(struct LCM_setting_table), 1);
 		pr_debug("ili9881c----rt5081----lcm mode = cmd mode :%d----\n", lcm_dsi_mode);
@@ -587,19 +405,43 @@ static void lcm_init(void)
 static void lcm_suspend(void)
 {
 	/*pr_debug("lcm_suspend\n");*/
-
 	push_table(NULL, lcm_suspend_setting, sizeof(lcm_suspend_setting) / sizeof(struct LCM_setting_table), 1);
-	MDELAY(10);
 	/* SET_RESET_PIN(0); */
 }
 
 static void lcm_resume(void)
 {
 	/*pr_debug("lcm_resume\n");*/
-
 	lcm_init();
 }
 
+static unsigned int lcm_esd_recover(void)
+{
+#ifndef BUILD_LK
+	lcm_resume_power();
+	SET_RESET_PIN(1);
+	MDELAY(1);
+	SET_RESET_PIN(0);
+	MDELAY(1);
+	SET_RESET_PIN(1);
+	MDELAY(120);
+	if (lcm_dsi_mode == CMD_MODE) {
+		push_table(NULL, init_setting_cmd, sizeof(init_setting_cmd) / sizeof(struct LCM_setting_table), 1);
+		pr_debug("ili9881c----rt5081----lcm mode = cmd mode :%d----\n", lcm_dsi_mode);
+	} else {
+		push_table(NULL, init_setting_vdo, sizeof(init_setting_vdo) / sizeof(struct LCM_setting_table), 1);
+		pr_debug("ili9881c----rt5081----lcm mode = vdo mode :%d----\n", lcm_dsi_mode);
+	}
+	pr_debug("lcm_esd_recovery\n");
+	push_table(NULL, bl_level, sizeof(bl_level) / sizeof(struct LCM_setting_table), 1);
+	return FALSE;
+#else
+	return FALSE;
+#endif
+
+}
+
+#if 0
 static void lcm_update(unsigned int x, unsigned int y, unsigned int width, unsigned int height)
 {
 	unsigned int x0 = x;
@@ -631,6 +473,7 @@ static void lcm_update(unsigned int x, unsigned int y, unsigned int width, unsig
 	data_array[0] = 0x002c3909;
 	dsi_set_cmdq(data_array, 1, 0);
 }
+#endif
 
 static unsigned int lcm_compare_id(void)
 {
@@ -684,9 +527,9 @@ static unsigned int lcm_esd_check(void)
 	array[0] = 0x00013700;
 	dsi_set_cmdq(array, 1, 1);
 
-	read_reg_v2(0x53, buffer, 1);
+	read_reg_v2(0x0A, buffer, 1);
 
-	if (buffer[0] != 0x24) {
+	if (buffer[0] != 0x9C) {
 		pr_debug("[LCM ERROR] [0x53]=0x%02x\n", buffer[0]);
 		return TRUE;
 	}
@@ -757,10 +600,19 @@ static unsigned int lcm_ata_check(unsigned char *buffer)
 static void lcm_setbacklight_cmdq(void *handle, unsigned int level)
 {
 
-	pr_debug("%s,ili9881c backlight: level = %d\n", __func__, level);
+	pr_debug("%s,egg_ili9881c backlight: level = %d\n", __func__, level);
 
-	bl_level[0].para_list[0] = (level&0xFF) >> 4;
-	bl_level[0].para_list[1] = (level&0x0F) << 4;
+	/*if ( (level>0) && (level<8) )
+		level = 8;
+	pr_debug("%s,egg_ili9881c backlight: level = %d\n", __func__, level);
+
+	// set 12bit
+	bl_level[1].para_list[0] = (level&0xF00)>>8;
+	bl_level[1].para_list[1] = (level&0xFF);*/
+
+	//for 12bit switch to 8bit
+	bl_level[1].para_list[0] = (level&0xF0)>>4;
+	bl_level[1].para_list[1] = (level&0xF)<<4;
 
 	push_table(handle, bl_level, sizeof(bl_level) / sizeof(struct LCM_setting_table), 1);
 }
@@ -828,6 +680,55 @@ static void lcm_validate_roi(int *x, int *y, int *width, int *height)
 }
 #endif
 
+
+#if 0
+static struct LCM_setting_table cabc_level[] = {
+	{ 0xFF, 0x03, {0x98, 0x81, 0x00} },
+	{0x55, 0x01, {0x00} },
+	{REGFLAG_END_OF_TABLE, 0x00, {} }
+};
+
+static void lcm_set_cabc_cmdq(void *handle, unsigned int enable)
+{
+	if(enable == 1 || enable == 0 || enable == 3 || enable == 2){
+		pr_debug("in EBBG panel driver , cabc set to vaule %d\n", enable);
+		cabc_level[1].para_list[0] = enable;
+		push_table(handle, cabc_level, sizeof(cabc_level) / sizeof(struct LCM_setting_table), 1);
+		cabc_status = enable;
+		setCabcStatus();
+	}else{
+		pr_debug("in EBBG panel driver , cabc set to invalid vaule %d\n", enable);
+	}
+}
+
+
+static void lcm_get_cabc_status(int *status)
+{
+	*status = cabc_status;
+	pr_debug("in EBBG panel driver , cabc get to %d\n", cabc_status);
+}
+#endif
+
+
+#if 0
+static void lcm_get_cabc_status(int *status)
+{
+	unsigned char buffer[2] = {0};
+	unsigned int array[16] = {0};
+
+	array[0] = 0x00013700;	/* read id return two byte,cabc mode and 0 */
+	dsi_set_cmdq(array, 1, 1);
+
+	read_reg_v2(0x56, buffer, 1);
+
+	pr_debug("read cabc %x,%x\n",buffer[0],buffer[1]);
+
+	pr_debug("in EBBG panel driver , cabc get to %d\n", buffer[0]);
+	*status = buffer[0];
+}
+#endif
+
+
 #if (LCM_DSI_CMD_MODE)
 LCM_DRIVER ili9881c_hdp_dsi_cmd_ilitek_rt5081_lcm_drv_ebbg = {
 	.name = "ili9881c_hdp_dsi_cmd_ilitek_rt5081_drv_ebbg",
@@ -846,12 +747,15 @@ struct LCM_DRIVER ili9881c_hdp_dsi_vdo_ilitek_rt5081_lcm_drv_ebbg = {
 	.resume_power = lcm_resume_power,
 	.suspend_power = lcm_suspend_power,
 	.esd_check = lcm_esd_check,
+	.esd_recover = lcm_esd_recover,
 	.set_backlight_cmdq = lcm_setbacklight_cmdq,
 	.ata_check = lcm_ata_check,
-	.update = lcm_update,
 	.switch_mode = lcm_switch_mode,
 #if (LCM_DSI_CMD_MODE)
 	.validate_roi = lcm_validate_roi,
 #endif
+
+	//.set_cabc_cmdq = lcm_set_cabc_cmdq,
+	//.get_cabc_status = lcm_get_cabc_status,
 
 };

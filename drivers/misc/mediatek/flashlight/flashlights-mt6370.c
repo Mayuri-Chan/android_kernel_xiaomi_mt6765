@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2015 MediaTek Inc.
+ * Copyright (C) 2019 XiaoMi, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -339,6 +340,32 @@ static int mt6370_set_level(int channel, int level)
 
 	return 0;
 }
+
+/* set flashlight node */
+int mt6370_flashlight_strobe_node(int level)
+{
+	int ret = 0;
+
+	if (!flashlight_dev_ch1 || !flashlight_dev_ch2) {
+		pr_err("Failed to enable since no flashlight device.\n");
+		return -1;
+	}
+
+	if (level > 0) {
+		/* enable channel 1*/
+		mt6370_set_level_ch1(6);
+		ret |= flashlight_set_mode(flashlight_dev_ch1, FLASHLIGHT_MODE_TORCH);
+	} else {
+		/* disable channel 1*/
+		ret |= flashlight_set_mode(flashlight_dev_ch1, FLASHLIGHT_MODE_OFF);
+	}
+
+	if (ret < 0)
+		pr_err("Failed to enable.\n");
+
+	return ret;
+}
+EXPORT_SYMBOL(mt6370_flashlight_strobe_node);
 
 static int mt6370_set_scenario(int scenario)
 {

@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2016 MediaTek Inc.
+ * Copyright (C) 2019 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -272,20 +273,6 @@ static void swchg_select_charging_current_limit(struct charger_manager *info)
 				pdata->charging_current_limit = 350000;
 			}
 		}
-	}
-
-	if (pdata->thermal_charging_current_limit != -1) {
-		if (pdata->thermal_charging_current_limit <
-		    pdata->charging_current_limit)
-			pdata->charging_current_limit =
-					pdata->thermal_charging_current_limit;
-	}
-
-	if (pdata->thermal_input_current_limit != -1) {
-		if (pdata->thermal_input_current_limit <
-		    pdata->input_current_limit)
-			pdata->input_current_limit =
-					pdata->thermal_input_current_limit;
 	}
 
 	if (mtk_pe40_get_is_connect(info)) {
@@ -583,6 +570,7 @@ int mtk_switch_chr_err(struct charger_manager *info)
 int mtk_switch_chr_full(struct charger_manager *info)
 {
 	bool chg_done = false;
+	int chr_type;
 	struct switch_charging_alg_data *swchgalg = info->algorithm_data;
 
 	swchgalg->total_charging_time = 0;
@@ -596,7 +584,8 @@ int mtk_switch_chr_full(struct charger_manager *info)
 	swchg_select_cv(info);
 	info->polling_interval = CHARGING_FULL_INTERVAL;
 	charger_dev_is_charging_done(info->chg1_dev, &chg_done);
-	if (!chg_done) {
+	chr_type = mt_get_charger_type();
+	if (chr_type && !chg_done) {
 		swchgalg->state = CHR_CC;
 		charger_dev_do_event(info->chg1_dev, EVENT_RECHARGE, 0);
 		mtk_pe20_set_to_check_chr_type(info, true);

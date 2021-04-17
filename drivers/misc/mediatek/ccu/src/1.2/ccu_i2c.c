@@ -74,12 +74,12 @@ static const struct i2c_device_id ccu_i2c_4_ids[] = {
 
 #ifdef CONFIG_OF
 static const struct of_device_id ccu_i2c_2_driver_of_ids[] = {
-	{.compatible = "mediatek,ccu_sensor_i2c_2_hw",},
+	{.compatible = "mediatek,ccu_sensor_i2c_main_hw",},
 	{}
 };
 
 static const struct of_device_id ccu_i2c_4_driver_of_ids[] = {
-	{.compatible = "mediatek,ccu_sensor_i2c_4_hw",},
+	{.compatible = "mediatek,ccu_sensor_i2c_sub_hw",},
 	{}
 };
 #endif

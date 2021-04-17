@@ -35,6 +35,13 @@ ifeq ($(CONFIG_MTK_LENS_USE_MODULE), y)
 
 MAIN_CFILES += main_lens.c
 
+# cereus lens
+MAIN_CFILES  += common/cereus_dw9714af_ofilm/CEREUS_DW9714AF_OFILM.c
+MAIN_CFILES  += common/cereus_dw9714af_sunny/CEREUS_DW9714AF_SUNNY.c
+#cactus lens
+MAIN_CFILES  += common/cactus_dw9714af_ofilm/CACTUS_DW9714AF_OFILM.c
+MAIN_CFILES  += common/cactus_fp5510e2af_sunny/CACTUS_FP5510E2AF_SUNNY.c
+# others
 MAIN_CFILES  += common/fp5510e2af/FP5510E2AF.c
 MAIN_CFILES  += common/bu6424af/BU6424AF.c
 MAIN_CFILES  += common/bu6429af/BU6429AF.c
@@ -80,6 +87,13 @@ mainaf-objs := $(MAIN_CFILES:.c=.o)
 else
 
 obj-y  += main_lens.o
+# cereus lens
+obj-y  += common/cereus_dw9714af_ofilm/
+obj-y  += common/cereus_dw9714af_sunny/
+#cactus lens
+obj-y  += common/cactus_dw9714af_ofilm/
+obj-y  += common/cactus_fp5510e2af_sunny/
+# others
 obj-y  += common/fp5510e2af/
 obj-y  += common/bu6424af/
 obj-y  += common/bu6429af/

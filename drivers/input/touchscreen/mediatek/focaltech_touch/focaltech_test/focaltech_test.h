@@ -1,5 +1,6 @@
 /************************************************************************
 * Copyright (C) 2012-2017, Focaltech Systems (R)£¬All Rights Reserved.
+* Copyright (C) 2019 XiaoMi, Inc.
 *
 * File Name: focaltech_test.h
 *
@@ -37,7 +38,11 @@
 * Macro definitions using #define
 *****************************************************************************/
 #define IC_TEST_VERSION                 "V2.0.0 20170811"
-#define FTS_INI_FILE_PATH           "/mnt/sdcard/"   // Define the configuration file storage directory
+//#define FTS_INI_FILE_PATH           "/mnt/sdcard/"   // Define the configuration file storage directory
+#define FTS_INI_FILE_PATH           "/vendor/etc/" //bug trl
+#define FTS_SAVE_DATA_FILE_PATH "/mnt/sdcard/"
+#define OFILM_VENDOR     81
+#define LENS_VENDOR    109
 #define false 0
 #define true  1
 #define MAX_TEST_ITEM                           20
@@ -286,6 +291,9 @@ void *fts_malloc(size_t size);
 void fts_free_proc(void *p);
 int init_test(void);
 void finish_test(void);
+#if FTS_LOCK_DOWN_INFO
+int fts_lockdown_init(struct i2c_client *client ,struct fts_ts_data *fts_data);
+#endif
 
 #define fts_free(p) do {\
     if (p) {\
