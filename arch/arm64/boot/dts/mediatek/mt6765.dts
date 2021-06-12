@@ -2667,9 +2667,22 @@ firmware_class.path=/vendor/firmware";
 	};
 
 	kd_camera_hw1: kd_camera_hw1@1a040000 {
-		cam0_enable_sensor = "cactus_ov13855_ofilm_mipi_raw cactus_s5k3l8_sunny_mipi_raw cereus_imx486_sunny_mipi_raw cereus_ov12a10_ofilm_mipi_raw"; //main
+		cam0_enable_sensor = "cactus_ov13855_ofilm_mipi_raw cactus_s5k3l8_sunny_mipi_raw cereus_imx486_sunny_mipi_raw cereus_ov12a10_ofilm_mipi_raw"; // main
+		cam0_vcama-supply = <&mt_pmic_vcama_ldo_reg>;
+		cam0_vcamd-supply = <&mt_pmic_vcamd_ldo_reg>;
+		cam0_vcamio-supply = <&mt_pmic_vcamio_ldo_reg>;
+		//cam0_vcamaf-supply = <&mt_pmic_vldo28_ldo_reg>;
+
 		cam1_enable_sensor = "cactus_hi556_sunny_mipi_raw cactus_s5k5e8yx_ofilm_mipi_raw cereus_s5k5e8yx_ofilm_mipi_raw cereus_s5k5e8yx_sunny_mipi_raw"; // sub
+		cam1_vcama-supply = <&mt_pmic_vcama_ldo_reg>;
+		cam1_vcamd-supply = <&mt_pmic_vcamd_ldo_reg>;
+		cam1_vcamio-supply = <&mt_pmic_vcamio_ldo_reg>;
+
 		cam2_enable_sensor = "cereus_s5k5e8yxaux_ofilm_mipi_raw cereus_s5k5e8yxaux_sunny_mipi_raw"; // main2
+		cam2_vcama-supply = <&mt_pmic_vcama_ldo_reg>;
+		cam2_vcamd-supply = <&mt_pmic_vcamd_ldo_reg>;
+		cam2_vcamio-supply = <&mt_pmic_vcamio_ldo_reg>;
+
 
 		compatible = "mediatek,camera_hw";
 		reg = <0 0x1a040000 0 0x1000>;
