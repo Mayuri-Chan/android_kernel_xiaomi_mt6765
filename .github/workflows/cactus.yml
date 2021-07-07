@@ -1,0 +1,18 @@
+name: Cactus
+
+on: push
+
+jobs:
+  build:
+    name: Cactus;
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v1
+    - name: Build Kernel
+      run: |
+        chmod a+x ./cactus.sh
+        ./cactus.sh
+      shell: bash
+      env:
+        ci_secret: ${{ secrets.CI_SECRET }} 
+        GITOKEN: ${{ secrets.GITOKEN }}
