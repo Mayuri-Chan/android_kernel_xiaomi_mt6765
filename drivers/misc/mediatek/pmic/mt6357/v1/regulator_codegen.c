@@ -19,21 +19,9 @@
 #include "include/pmic_api_buck.h"
 #include "include/regulator_codegen.h"
 
-static const int vfe28_voltages[] = {
-	2800000,
-};
-
 static const int vxo22_voltages[] = {
 	2200000,
 	2400000,
-};
-
-static const int vrf18_voltages[] = {
-	1800000,
-};
-
-static const int vrf12_voltages[] = {
-	1200000,
 };
 
 static const int vefuse_voltages[] = {
@@ -59,14 +47,6 @@ static const int vcn33_wifi_voltages[] = {
 	3500000,
 };
 
-static const int vcn28_voltages[] = {
-	2800000,
-};
-
-static const int vcn18_voltages[] = {
-	1800000,
-};
-
 static const int vcama_voltages[] = {
 	2500000,
 	2800000,
@@ -81,29 +61,9 @@ static const int vcamd_voltages[] = {
 	1800000,
 };
 
-static const int vcamio_voltages[] = {
-	1800000,
-};
-
 static const int vldo28_voltages[] = {
 	2800000,
 	3000000,
-};
-
-static const int vaux18_voltages[] = {
-	1800000,
-};
-
-static const int vaud28_voltages[] = {
-	2800000,
-};
-
-static const int vio28_voltages[] = {
-	2800000,
-};
-
-static const int vio18_voltages[] = {
-	1800000,
 };
 
 static const int vdram_voltages[] = {
