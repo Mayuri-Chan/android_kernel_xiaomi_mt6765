@@ -978,7 +978,7 @@ struct gauge_device *gauge_device_register(const char *name,
 	gauge_dev->dev.class = gauge_class;
 	gauge_dev->dev.parent = parent;
 	gauge_dev->dev.release = gauge_device_release;
-	dev_set_name(&gauge_dev->dev, name);
+	dev_set_name(&gauge_dev->dev, "%s", name);
 	dev_set_drvdata(&gauge_dev->dev, devdata);
 
 	/* Copy properties */
