@@ -1229,7 +1229,7 @@ static ssize_t store_low_battery_protect_ut(
 	int ret = 0;
 	char *pvalue = NULL;
 	unsigned int val = 0;
-	unsigned int thd;
+	unsigned int thd = 0;
 
 	pr_info("[%s]\n", __func__);
 
