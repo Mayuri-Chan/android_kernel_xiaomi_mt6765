@@ -1110,6 +1110,45 @@ int __init early_init_dt_scan_chosen(unsigned long node, const char *uname,
 		p = of_get_flat_dt_prop(node, "bootargs", &l);
 
 	if (p != NULL && l > 0) {
+#ifdef CONFIG_CMDLINE_BOOTLOADER_FILTER
+		const char *cmdline_filter = CONFIG_CMDLINE_BOOTLOADER_FILTER;
+		const char *delimiters = " \t";
+		unsigned int length, offset = 0, done = 0;
+
+		char dt_cmdline[l], formatted_token[l];
+		strncpy(dt_cmdline, p, l);
+
+		while (!done) {
+			const char *start = &cmdline_filter[offset], *end = strpbrk(start, delimiters);
+			char *dt_entry;
+
+			if (end) {
+				length = end - start;
+				offset += length + 1;
+			} else {
+				length = strlen(start);
+				done = 1;
+			}
+
+			if (length == 0) {
+				continue;
+			}
+
+			if (start[length - 1] != '=') {
+				sprintf(formatted_token, " %.*s ", length, start);
+			} else {
+				sprintf(formatted_token, " %.*s", length, start);
+			}
+
+			while ((dt_entry = strstr(dt_cmdline, formatted_token))) {
+				unsigned int token_length = strpbrk(dt_entry + 1, delimiters) - dt_entry;
+				memmove(dt_entry, dt_entry + token_length, strlen(dt_cmdline) - (dt_entry - dt_cmdline) - token_length + 1);
+			}
+		}
+
+		p = dt_cmdline;
+		l = strlen(p);
+#endif
 		if (concat_cmdline) {
 			int cmdline_len;
 			int copy_len;

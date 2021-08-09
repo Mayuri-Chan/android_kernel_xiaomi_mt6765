@@ -2035,6 +2035,14 @@ config CMDLINE
 	  time by entering them here. As a minimum, you should specify the
 	  memory size and the root device (e.g., mem=64M root=/dev/nfs).
 
+config CMDLINE_BOOTLOADER_FILTER
+	string "Filter bootloader kernel arguments"
+	default ""
+	help
+	  Provide a set of filters to remove specific command-line options
+	  at run time. If option has value you should add '=' at the end
+	  of it (e.g. root= ro).
+
 choice
 	prompt "Kernel command line type" if CMDLINE != ""
 	default CMDLINE_FROM_BOOTLOADER
