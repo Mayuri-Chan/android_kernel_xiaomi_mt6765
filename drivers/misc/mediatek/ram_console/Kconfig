@@ -5,3 +5,81 @@ config MTK_RAM_CONSOLE
 	  debug information and can be read after reboot.
 	  It can be configured as SRAM or DRAM.
 	  Each ram type should be set address and size.
+
+config MTK_RAM_CONSOLE_LEGACY_BOOTLOADER
+	bool "mt legacy bootloader ram console"
+	depends on MTK_RAM_CONSOLE
+
+config MTK_RAM_CONSOLE_USING_SRAM
+	bool "Using SRAM as ram console storage"
+	depends on MTK_RAM_CONSOLE_LEGACY_BOOTLOADER
+	help
+	  If set this config as yes, ram_console will use
+	  SRAM as its storage, all ram_console content
+	  will write into SRAM.
+	  You should set SRAM address and size as belows.
+
+config MTK_RAM_CONSOLE_USING_DRAM
+	bool "Using DRAM as ram console storage"
+	depends on MTK_RAM_CONSOLE_LEGACY_BOOTLOADER
+	help
+	  If set this config as yes, ram_console will use
+	  DRAM as its storage, all ram_console content
+	  will write into DRAM.
+	  You should set DRAM address and size as belows.
+
+config MTK_RAM_CONSOLE_SRAM_ADDR
+	hex "MTK RAM console sram addres"
+	default 0
+	depends on MTK_RAM_CONSOLE_USING_SRAM
+	help
+	  SRAM ram_console address.
+
+config MTK_RAM_CONSOLE_SRAM_SIZE
+	hex "MTK RAM console sram size"
+	default 0
+	depends on MTK_RAM_CONSOLE_USING_SRAM
+	help
+	  SRAM ram_console memory allocate size.
+
+config MTK_RAM_CONSOLE_DRAM_ADDR
+	hex "MTK RAM console dram addres"
+	default 0
+	depends on MTK_RAM_CONSOLE_USING_DRAM
+	help
+	  DRAM ram_console address.
+
+config MTK_RAM_CONSOLE_DRAM_SIZE
+	hex "MTK RAM console dram size"
+	default 0
+	depends on MTK_RAM_CONSOLE_USING_DRAM
+	help
+	  DRAM ram_console memory allocate size.
+
+config MTK_RAM_CONSOLE_PSTORE_ADDR
+	hex "MTK RAM console pstore addres"
+	default 0
+	depends on MTK_RAM_CONSOLE_LEGACY_BOOTLOADER
+	help
+	  PSTORE ram_console address.
+
+config MTK_RAM_CONSOLE_PSTORE_SIZE
+	hex "MTK RAM console pstore size"
+	default 0
+	depends on MTK_RAM_CONSOLE_LEGACY_BOOTLOADER
+	help
+	  PSTORE ram_console memory allocate size.
+
+config MTK_RAM_CONSOLE_MRDUMP_ADDR
+	hex "MTK RAM console mrdump addres"
+	default 0
+	depends on MTK_RAM_CONSOLE_LEGACY_BOOTLOADER
+	help
+	  MRDUMP ram_console address.
+
+config MTK_RAM_CONSOLE_MRDUMP_SIZE
+	hex "MTK RAM console mrdump size"
+	default 0
+	depends on MTK_RAM_CONSOLE_LEGACY_BOOTLOADER
+	help
+	  MRDUMP ram_console memory allocate size.

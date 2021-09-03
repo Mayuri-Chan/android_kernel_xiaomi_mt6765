@@ -706,6 +706,43 @@ void __weak sram_log_store_set_addr_size(unsigned int addr, unsigned int size)
 {
 }
 
+#ifdef CONFIG_MTK_RAM_CONSOLE_LEGACY_BOOTLOADER
+static void ram_console_parse_memory_info(struct mem_desc_t *sram,
+		struct ram_console_memory_info *memory_info)
+{
+	if (sram != NULL && sram->start == 0) {
+		sram->start = CONFIG_MTK_RAM_CONSOLE_SRAM_ADDR;
+		sram->size = CONFIG_MTK_RAM_CONSOLE_SRAM_SIZE;
+#if defined(CONFIG_MTK_RAM_CONSOLE_USING_SRAM)
+		sram->def_type = RAM_CONSOLE_DEF_SRAM;
+#elif defined(CONFIG_MTK_RAM_CONSOLE_USING_DRAM)
+		sram->def_type = RAM_CONSOLE_DEF_DRAM;
+#else
+		sram->def_type = RAM_CONSOLE_DEF_UNKNOWN;
+#endif
+	}
+
+	if (memory_info != NULL) {
+#if defined(CONFIG_MTK_RAM_CONSOLE_USING_DRAM)
+		memory_info->dram_addr = CONFIG_MTK_RAM_CONSOLE_DRAM_ADDR;
+		memory_info->dram_size = CONFIG_MTK_RAM_CONSOLE_DRAM_SIZE;
+#endif
+		memory_info->pstore_addr = CONFIG_MTK_RAM_CONSOLE_PSTORE_ADDR;
+		memory_info->pstore_size = CONFIG_MTK_RAM_CONSOLE_PSTORE_SIZE;
+		memory_info->pstore_console_size = 0x40000;
+		memory_info->pstore_pmsg_size = 0x10000;
+		memory_info->mrdump_mini_header_addr = CONFIG_MTK_RAM_CONSOLE_MRDUMP_ADDR;
+		memory_info->mrdump_mini_header_size = CONFIG_MTK_RAM_CONSOLE_MRDUMP_SIZE;
+
+		pstore_set_addr_size(memory_info->pstore_addr, memory_info->pstore_size, memory_info->pstore_console_size, memory_info->pstore_pmsg_size);
+		mrdump_mini_set_addr_size(memory_info->mrdump_mini_header_addr, memory_info->mrdump_mini_header_size);
+		pr_notice("ram_console: [DT] 0x%x@0x%x-0x%x@0x%x\n", memory_info->pstore_size, memory_info->pstore_addr,
+				  memory_info->mrdump_mini_header_size, memory_info->mrdump_mini_header_addr);
+	} else {
+		ram_console_fatal("memory_info is NULL");
+	}
+}
+#else
 static void ram_console_parse_memory_info(struct mem_desc_t *sram,
 		struct ram_console_memory_info *p_memory_info)
 {
@@ -771,6 +808,7 @@ static void ram_console_parse_memory_info(struct mem_desc_t *sram,
 		ram_console_fatal("illegal offset");
 	}
 }
+#endif
 
 static int __init ram_console_early_init(void)
 {
@@ -811,11 +849,13 @@ static int __init ram_console_early_init(void)
 			(struct ram_console_buffer *)(unsigned long)start;
 		if (bufp) {
 			buffer_size = size;
+//#ifndef CONFIG_MTK_RAM_CONSOLE_LEGACY_BOOTLOADER
 			if (bufp->sig != REBOOT_REASON_SIG) {
 				pr_err("ram_console: illegal sig:0x%x\n",
 						bufp->sig);
 				ram_console_fatal("illegal sig");
 			}
+//#endif
 		} else {
 			pr_err("ram_console: ioremap failed, [0x%x, 0x%x]\n",
 					start, size);
