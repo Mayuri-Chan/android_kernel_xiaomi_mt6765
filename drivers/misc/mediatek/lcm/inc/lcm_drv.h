@@ -711,6 +711,8 @@ struct LCM_PARAMS {
 
 	unsigned int hbm_en_time;
 	unsigned int hbm_dis_time;
+
+	int bias_voltage;
 };
 
 

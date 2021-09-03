@@ -57,7 +57,6 @@ EXPORT_SYMBOL_GPL(daulOS_rd_sem);
 struct semaphore daulOS_wr_sem;
 EXPORT_SYMBOL_GPL(daulOS_wr_sem);
 DECLARE_WAIT_QUEUE_HEAD(__fp_open_wq);
-DECLARE_WAIT_QUEUE_HEAD(__wait_spi_wq);
 
 
 int fp_open(struct inode *inode, struct file *filp)
@@ -81,20 +80,6 @@ int fp_open(struct inode *inode, struct file *filp)
 
 		IMSG_INFO("[I]%s : Load tees finished, and wait for %u msecs\n",
 				__func__, (1000 * 10 - jiffies_to_msecs(ret)));
-
-		ret = wait_event_timeout(__wait_spi_wq, (spi_ready_flag == 1),
-						msecs_to_jiffies(1000 * 10));
-		if (ret == 0) {
-			IMSG_ERROR("[E] Spi's loading is not finished.\n");
-			return -1;
-		}
-		if (ret < 0) {
-			IMSG_ERROR("[E] Wait_event_timeout error.\n");
-			return -1;
-		}
-
-		IMSG_INFO("[I]%s : Load spi finished, and wait for %u msecs\n",
-			__func__, (1000 * 10 - jiffies_to_msecs(ret)));
 
 		wait_teei_config_flag = 0;
 	}

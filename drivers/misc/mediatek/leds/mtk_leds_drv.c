@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2015 MediaTek Inc.
+ * Copyright (C) 2019 XiaoMi, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -36,6 +37,10 @@
 #include <linux/gpio.h>
 #include <asm-generic/gpio.h>
 #endif
+
+#ifdef CONFIG_MTK_PMIC_NEW_ARCH
+#include <mt-plat/upmu_common.h>
+#endif
 /****************************************************************************
  * variables
  ***************************************************************************/
@@ -56,6 +61,7 @@ static unsigned int last_level1 = 102;
 static struct i2c_client *g_client;
 static int I2C_SET_FOR_BACKLIGHT  = 350;
 #endif
+static bool pmic_chrind_en = true;
 /****************************************************************************
  * DEBUG MACROS
  ***************************************************************************/
@@ -236,6 +242,15 @@ static void mt65xx_led_set(struct led_classdev *led_cdev,
 				I2C_SET_FOR_BACKLIGHT);
 	}
 #endif
+
+	if (pmic_chrind_en) {
+		pmic_set_register_value(PMIC_CHRIND_EN_SEL, 1);
+		pmic_set_register_value(PMIC_CHRIND_MODE, 2);
+		pmic_set_register_value(PMIC_CHRIND_EN, 0);
+
+		pmic_chrind_en = false;
+	}
+
 	if (strcmp(led_data->cust.name, "lcd-backlight") == 0) {
 #ifdef CONTROL_BL_TEMPERATURE
 		mutex_lock(&bl_level_limit_mutex);
@@ -290,6 +305,14 @@ static void mt65xx_led_set(struct led_classdev *led_cdev,
 static int mt65xx_blink_set(struct led_classdev *led_cdev,
 			    unsigned long *delay_on, unsigned long *delay_off)
 {
+	if (pmic_chrind_en) {
+		pmic_set_register_value(PMIC_CHRIND_EN_SEL, 1);
+		pmic_set_register_value(PMIC_CHRIND_MODE, 2);
+		pmic_set_register_value(PMIC_CHRIND_EN, 0);
+
+		pmic_chrind_en = false;
+	}
+
 	if (mt_mt65xx_blink_set(led_cdev, delay_on, delay_off))
 		return -1;
 	else

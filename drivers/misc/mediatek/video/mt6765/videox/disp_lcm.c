@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2015 MediaTek Inc.
+ * Copyright (C) 2019 XiaoMi, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -24,6 +25,8 @@
 #if defined(MTK_LCM_DEVICE_TREE_SUPPORT)
 #include <linux/of.h>
 #endif
+
+int g_Lcm_Bias_Voltage = 0;
 
 /* This macro and arrya is designed for multiple LCM support */
 /* for multiple LCM, we should assign I/F Port id in lcm driver, */
@@ -1325,9 +1328,10 @@ struct LCM_PARAMS *disp_lcm_get_params(struct disp_lcm_handle *plcm)
 {
 	/* DISPFUNC(); */
 
-	if (_is_lcm_inited(plcm))
+	if (_is_lcm_inited(plcm)) {
+		g_Lcm_Bias_Voltage = plcm->params->bias_voltage;
 		return plcm->params;
-	else
+	} else
 		return NULL;
 }
 

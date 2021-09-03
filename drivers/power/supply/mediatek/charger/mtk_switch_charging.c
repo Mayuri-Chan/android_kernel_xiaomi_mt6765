@@ -156,11 +156,13 @@ static void swchg_select_charging_current_limit(struct charger_manager *info)
 		goto done;
 	}
 
+#ifdef CONFIG_POWER_SUPPLY_DEBUG
 	if (info->atm_enabled == true && (info->chr_type == STANDARD_HOST ||
 	    info->chr_type == CHARGING_HOST)) {
 		pdata->input_current_limit = 100000; /* 100mA */
 		goto done;
 	}
+#endif
 
 	if (mtk_is_TA_support_pd_pps(info)) {
 		pdata->input_current_limit =

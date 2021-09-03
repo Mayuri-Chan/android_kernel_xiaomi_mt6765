@@ -1,5 +1,6 @@
 /*
 * Copyright (C) 2016 MediaTek Inc.
+* Copyright (C) 2019 XiaoMi, Inc.
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License version 2 as
@@ -122,6 +123,7 @@ static enum power_supply_property battery_props[] = {
 	POWER_SUPPLY_PROP_VOLTAGE_NOW,
 	POWER_SUPPLY_PROP_CHARGE_FULL,
 	POWER_SUPPLY_PROP_CHARGE_COUNTER,
+	POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN,
 	POWER_SUPPLY_PROP_TEMP,
 };
 
@@ -361,6 +363,9 @@ static int battery_get_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_TEMP:
 		val->intval = gm.tbat_precise;
 		break;
+	case POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN:
+		val->intval = 3000000;
+		break;
 
 	default:
 		ret = -EINVAL;
@@ -383,7 +388,7 @@ struct battery_data battery_main = {
 	.BAT_STATUS = POWER_SUPPLY_STATUS_DISCHARGING,
 	.BAT_HEALTH = POWER_SUPPLY_HEALTH_GOOD,
 	.BAT_PRESENT = 1,
-	.BAT_TECHNOLOGY = POWER_SUPPLY_TECHNOLOGY_LION,
+	.BAT_TECHNOLOGY = POWER_SUPPLY_TECHNOLOGY_LIPO,
 	.BAT_CAPACITY = -1,
 	.BAT_batt_vol = 0,
 	.BAT_batt_temp = 0,
@@ -452,9 +457,14 @@ void battery_update(struct battery_data *bat_data)
 	struct power_supply *bat_psy = bat_data->psy;
 
 	battery_update_psd(&battery_main);
-	bat_data->BAT_TECHNOLOGY = POWER_SUPPLY_TECHNOLOGY_LION;
-	bat_data->BAT_HEALTH = POWER_SUPPLY_HEALTH_GOOD;
+	bat_data->BAT_TECHNOLOGY = POWER_SUPPLY_TECHNOLOGY_LIPO;
 	bat_data->BAT_PRESENT = 1;
+
+	if (bat_data->BAT_CAPACITY == 100 && upmu_get_rgs_chrdet() != 0 &&
+		bat_data->BAT_STATUS != POWER_SUPPLY_STATUS_DISCHARGING) {
+			bat_data->BAT_STATUS = POWER_SUPPLY_STATUS_FULL;
+	}
+	bm_trace("%s: capacity=%d, chrdet=%d, status=%d\n", __func__, bat_data->BAT_CAPACITY, upmu_get_rgs_chrdet(), bat_data->BAT_STATUS);
 
 #if defined(CONFIG_MTK_DISABLE_GAUGE)
 	return;
@@ -1146,6 +1156,27 @@ static DEVICE_ATTR(UI_SOC, 0664, show_UI_SOC,
 /* ============================================================ */
 /* Internal function */
 /* ============================================================ */
+void check_bat_health(int bat_temp)
+{
+	int old_health = battery_main.BAT_HEALTH;
+
+	if (bat_temp <= 0)
+		battery_main.BAT_HEALTH = POWER_SUPPLY_HEALTH_COLD;
+	else if (bat_temp <= 15)
+		battery_main.BAT_HEALTH = POWER_SUPPLY_HEALTH_COOL;
+	else if (bat_temp <= 45)
+		battery_main.BAT_HEALTH = POWER_SUPPLY_HEALTH_GOOD;
+	else if (bat_temp <= 55)
+		battery_main.BAT_HEALTH = POWER_SUPPLY_HEALTH_WARM;
+	else
+		battery_main.BAT_HEALTH = POWER_SUPPLY_HEALTH_HOT;
+
+	if (old_health != battery_main.BAT_HEALTH) {
+		bm_trace("%s: bat_temp=%d, old_health=%d, new_health=%d\n",
+			__func__, bat_temp, old_health, battery_main.BAT_HEALTH);
+	}
+}
+
 void fg_custom_data_check(void)
 {
 	struct fuel_gauge_custom_data *p;
@@ -1588,6 +1619,7 @@ int force_get_tbat(bool update)
 		return DEFAULT_BATTERY_TMP_WHEN_DISABLE_NAFG;
 	}
 
+	check_bat_health(bat_temperature_val);
 	gm.ntc_disable_nafg = false;
 	bm_debug("[%s] t:%d precise:%d\n", __func__,
 		bat_temperature_val, gm.tbat_precise);

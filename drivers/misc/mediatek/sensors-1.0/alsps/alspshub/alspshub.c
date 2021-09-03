@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2016 MediaTek Inc.
+ * Copyright (C) 2019 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -531,6 +532,7 @@ static int pshub_factory_set_cali(int32_t offset)
 	struct alspshub_ipi_data *obj = obj_ipi_data;
 
 	obj->ps_cali = offset;
+	sensor_enable_to_hub(ID_PROXIMITY, true);
 	return 0;
 }
 static int pshub_factory_get_cali(int32_t *offset)
@@ -740,6 +742,7 @@ static int ps_open_report_data(int open)
 static int ps_enable_nodata(int en)
 {
 	int res = 0;
+	struct data_unit_t data;
 	struct alspshub_ipi_data *obj = obj_ipi_data;
 
 	pr_debug("obj_ipi_data als enable value = %d\n", en);
@@ -747,6 +750,11 @@ static int ps_enable_nodata(int en)
 		WRITE_ONCE(obj->ps_android_enable, true);
 	else
 		WRITE_ONCE(obj->ps_android_enable, false);
+
+	sensor_get_data_from_hub(ID_PROXIMITY, &data);
+	if (data.proximity_t.oneshot) {
+		sensor_set_cmd_to_hub(ID_PROXIMITY, CUST_ACTION_SET_CALI, &obj->ps_cali);
+	}
 
 	res = sensor_enable_to_hub(ID_PROXIMITY, en);
 	if (res < 0) {

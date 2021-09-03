@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2018 MediaTek Inc.
+ * Copyright (C) 2019 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -54,6 +55,9 @@ static struct class *g_drvClass;
 static unsigned int g_drvOpened;
 static struct i2c_client *g_pstI2Cclients[I2C_DEV_IDX_MAX] = { NULL };
 
+struct stCAM_CAL_DATAINFO_STRUCT *g_eepromMainData = NULL;
+struct stCAM_CAL_DATAINFO_STRUCT *g_eepromSubData = NULL;
+struct stCAM_CAL_DATAINFO_STRUCT *g_eepromMain2Data = NULL;
 
 static DEFINE_SPINLOCK(g_spinLock);	/*for SMP */
 
@@ -190,6 +194,218 @@ static struct stCAM_CAL_CMD_INFO_STRUCT *EEPROM_get_cmd_info_ex
 	}
 }
 
+static void EEPROM_reset_cmd_info_ex(unsigned int sensorID, unsigned int deviceID) {
+	unsigned int i = 0;
+
+	for (i = 0; i < IMGSENSOR_SENSOR_IDX_MAX_NUM; i++) {
+		if (deviceID == g_camCalDrvInfo[i].deviceID && sensorID == g_camCalDrvInfo[i].sensorID) {
+			g_camCalDrvInfo[i].deviceID = 0;
+			g_camCalDrvInfo[i].sensorID = 0;
+		}
+	}
+}
+
+#define MAX_EFUSE_ID_LENGTH (64)
+static u8 imgSensorStaticEfuseID[IMGSENSOR_SENSOR_IDX_MAX_NUM][MAX_EFUSE_ID_LENGTH] = {{0}, {0}, {0}, {0}};
+
+void imgSensorSetDataEfuseID(u8 *buf, u32 deviceID, u32 length) {
+	u8 efuseIDStr[MAX_EFUSE_ID_LENGTH] = {0};
+	unsigned int index = 0, len = 0;
+
+	if (buf == NULL) {
+		pr_err("invalid buffer, please check your driver\n");
+		return;
+	}
+
+	if (deviceID != DUAL_CAMERA_MAIN_SENSOR && deviceID != DUAL_CAMERA_SUB_SENSOR && deviceID != DUAL_CAMERA_MAIN_2_SENSOR) {
+		pr_err("invalid deviceID(%d), please check your driver\n", deviceID);
+		return;
+	}
+
+	memset(efuseIDStr, 0, MAX_EFUSE_ID_LENGTH);
+	for (index = 0; index < length && index < MAX_EFUSE_ID_LENGTH; index++) {
+		len += snprintf(efuseIDStr + len, sizeof(efuseIDStr), "%02x", buf[index]);
+	}
+
+	pr_info("deviceID = %d, efuseIDStr = %s\n", deviceID, efuseIDStr);
+	index = deviceID / 2;
+
+	memset((char*) &imgSensorStaticEfuseID[index][0], 0, MAX_EFUSE_ID_LENGTH);
+	strncpy((char*) &imgSensorStaticEfuseID[index][0], (char*) efuseIDStr, strlen((char*) efuseIDStr));
+}
+
+u8 *getImgSensorEfuseID(u32 sensorID) {
+	if (sensorID > (IMGSENSOR_SENSOR_IDX_MAX_NUM - 1)) {
+		pr_err("invalid sensorID = %d\n", sensorID);
+		return NULL;
+	}
+
+	return &imgSensorStaticEfuseID[sensorID][0];
+}
+
+int imgSensorCheckEepromData(struct stCAM_CAL_DATAINFO_STRUCT *pData, struct stCAM_CAL_CHECKSUM_STRUCT *cData){
+	unsigned int count, i, length = 0;
+	u8* buffer = NULL;
+	u32 sum;
+
+	if (pData != NULL && pData->dataBuffer != NULL && cData != NULL) {
+		buffer = pData->dataBuffer;
+
+		// verity validflag and checksum
+		for (count = 0; count < MAX_ITEM; count++) {
+			if (cData[count].item >= MAX_ITEM) {
+				break;
+			}
+
+			if (cData[count].flagAdrees != cData[count].startAdress) {
+				if (buffer[cData[count].flagAdrees] != cData[count].validFlag) {
+					pr_err("invalid otp data cItem=%d, flag=%d failed\n", cData[count].item, buffer[cData[count].flagAdrees]);
+					return -ENODEV;
+				} else {
+					pr_info("check cTtem=%d, flag=%d otp flag data successful!\n", cData[count].item, buffer[cData[count].flagAdrees]);
+				}
+			}
+
+			sum = 0;
+			length = cData[count].endAdress - cData[count].startAdress;
+
+			for (i = 0; i <= length; i++){
+				sum += buffer[cData[count].startAdress + i];
+			}
+
+			if (((sum % 0xFF) + 1) != buffer[cData[count].checksumAdress]) {
+				pr_err("checksum cItem=%d, 0x%x, length = 0x%x failed\n", cData[count].item, sum, length);
+				return -ENODEV;
+			} else {
+				pr_info("checksum cItem=%d, 0x%x, length = 0x%x successful!\n", cData[count].item, sum, length);
+			}
+		}
+	} else {
+		pr_err("some data not inited!\n");
+		return -ENODEV;
+	}
+
+	pr_info("sensor[0x%x][0x%x] eeprom checksum success\n", pData->sensorID, pData->deviceID);
+
+	return 0;
+}
+
+int imgSensorReadEepromData(struct stCAM_CAL_DATAINFO_STRUCT *pData, struct stCAM_CAL_CHECKSUM_STRUCT *checkData, unsigned int efuseCount) {
+	struct stCAM_CAL_CMD_INFO_STRUCT *pcmdInf = NULL;
+	u8 efuseIDBuf[16] = {0};
+	u8 tmpBuf[4] = {0};
+	u32 vendorID;
+
+	unsigned int index;
+	int i4RetValue = -1;
+
+	if (pData == NULL || checkData == NULL) {
+		pr_err("pData or checkData not inited!\n");
+		return -EFAULT;
+	}
+
+	pr_info("SensorID=%x DeviceID=%x\n", pData->sensorID, pData->deviceID);
+
+	pcmdInf = EEPROM_get_cmd_info_ex(pData->sensorID, pData->deviceID);
+	if (pcmdInf != NULL) {
+		if (EEPROM_set_i2c_bus(pData->deviceID,pcmdInf) != 0) {
+			pr_err("deviceID Error!\n");
+			return -EFAULT;
+		}
+
+		if (pcmdInf->readCMDFunc != NULL) {
+			if (pData->dataBuffer == NULL) {
+				pData->dataBuffer = kmalloc(pData->dataLength, GFP_KERNEL);
+
+				if (pData->dataBuffer == NULL) {
+					pr_err("pData->dataBuffer is malloc fail\n");
+					return -EFAULT;
+				}
+			}
+
+			// verity vendorID
+			i4RetValue = pcmdInf->readCMDFunc(pcmdInf->client, pData->vendorByte[0], &tmpBuf[0], 1);
+			if (i4RetValue != 1) {
+				pr_err("vendorID read falied 0x%x != 0x%x\n", tmpBuf[0], pData->sensorVendorId >> 24);
+				EEPROM_reset_cmd_info_ex(pData->sensorID,pData->deviceID);
+
+				return -EFAULT;
+			}
+
+			vendorID = tmpBuf[0];
+			if (vendorID != pData->sensorVendorId >> 24) {
+				pr_err("vendorID cmp falied 0x%x != 0x%x\n",vendorID, pData->sensorVendorId >> 24);
+				EEPROM_reset_cmd_info_ex(pData->sensorID,pData->deviceID);
+
+				return -EFAULT;
+			}
+
+			// get eeprom data
+			i4RetValue = pcmdInf->readCMDFunc(pcmdInf->client, 0, pData->dataBuffer, pData->dataLength);
+			if (i4RetValue != pData->dataLength) {
+				kfree(pData->dataBuffer);
+				pData->dataBuffer = NULL;
+
+				pr_err("readCMDFunc failed\n");
+				EEPROM_reset_cmd_info_ex(pData->sensorID, pData->deviceID);
+
+				return -EFAULT;
+			} else {
+				if (imgSensorCheckEepromData(pData, checkData) != 0) {
+					kfree(pData->dataBuffer);
+					pData->dataBuffer = NULL;
+
+					pr_err("checksum failed\n");
+					EEPROM_reset_cmd_info_ex(pData->sensorID, pData->deviceID);
+
+					return -EFAULT;
+				}
+
+				pr_info("SensorID=%x DeviceID=%x read otp data success\n", pData->sensorID, pData->deviceID);
+				memset(efuseIDBuf, 0, 16);
+
+				for (index = 0; index < efuseCount; index++) {
+					efuseIDBuf[index] = pData->dataBuffer[0xF + efuseCount - index];
+				}
+
+				imgSensorSetDataEfuseID((u8*) efuseIDBuf, pData->deviceID, efuseCount);
+			}
+		} else {
+			pr_err("pcmdInf->readCMDFunc == NULL\n");
+		}
+	} else {
+		pr_err("pcmdInf == NULL\n");
+	}
+
+	return i4RetValue;
+}
+
+int imgSensorSetEepromData(struct stCAM_CAL_DATAINFO_STRUCT* pData){
+	pr_info("pData->deviceID = %d\n", pData->deviceID);
+
+	switch (pData->deviceID) {
+		case DUAL_CAMERA_MAIN_SENSOR:
+			if (g_eepromMainData == NULL) {
+				g_eepromMainData = pData;
+			}
+			return -ETXTBSY;
+		case DUAL_CAMERA_SUB_SENSOR:
+			if (g_eepromSubData == NULL) {
+				g_eepromSubData = pData;
+			}
+			return -ETXTBSY;
+		case DUAL_CAMERA_MAIN_2_SENSOR:
+			if (g_eepromMain2Data == NULL) {
+				g_eepromMain2Data = pData;
+			}
+			return -ETXTBSY;
+		default:
+			pr_err("we don't have this devices\n");
+			return -ENODEV;
+	}
+
+	return 0;
+}
 /**************************************************
  * EEPROM_HW_i2c_probe
  **************************************************/
@@ -539,6 +755,7 @@ static long EEPROM_drv_ioctl(struct file *file,
 	/*u8 *tempP = NULL; */
 	struct stCAM_CAL_INFO_STRUCT *ptempbuf = NULL;
 	struct stCAM_CAL_CMD_INFO_STRUCT *pcmdInf = NULL;
+	struct stCAM_CAL_DATAINFO_STRUCT *eepromData = NULL;
 
 #ifdef CAM_CALGETDLT_DEBUG
 	struct timeval ktv1, ktv2;
@@ -687,18 +904,46 @@ static long EEPROM_drv_ioctl(struct file *file,
 			g_lastDevID = ptempbuf->deviceID;
 		}
 
-		if (pcmdInf != NULL) {
-			if (pcmdInf->readCMDFunc != NULL)
-				i4RetValue =
-					pcmdInf->readCMDFunc(pcmdInf->client,
-							  ptempbuf->u4Offset,
-							  pu1Params,
-							  ptempbuf->u4Length);
-			else {
-				pr_debug("pcmdInf->readCMDFunc == NULL\n");
-				kfree(pBuff);
-				kfree(pu1Params);
-				return -EFAULT;
+		switch (ptempbuf->deviceID) {
+			case DUAL_CAMERA_MAIN_SENSOR:
+				eepromData = g_eepromMainData;
+				break;
+			case DUAL_CAMERA_SUB_SENSOR:
+				eepromData = g_eepromSubData;
+				break;
+			case DUAL_CAMERA_MAIN_2_SENSOR:
+				eepromData = g_eepromMain2Data;
+				break;
+		}
+
+		if (eepromData != NULL) {
+			u32 totalLength = ptempbuf->u4Offset + ptempbuf->u4Length;
+
+			if (eepromData->dataBuffer && totalLength <= eepromData->dataLength) {
+				if (ptempbuf->u4Offset == 1) {
+					memcpy(pu1Params, (u8*) &eepromData->sensorVendorId, 4);
+				} else {
+					memcpy(pu1Params, eepromData->dataBuffer + ptempbuf->u4Offset, ptempbuf->u4Length);
+				}
+
+				i4RetValue = ptempbuf->u4Length;
+			} else {
+				pr_err("maybe some error buf(%p) read(%d) have(%d)\n", eepromData->dataBuffer, totalLength, eepromData->dataLength);
+			}
+		} else {
+			if (pcmdInf != NULL) {
+				if (pcmdInf->readCMDFunc != NULL)
+					i4RetValue =
+						pcmdInf->readCMDFunc(pcmdInf->client,
+								  ptempbuf->u4Offset,
+								  pu1Params,
+								  ptempbuf->u4Length);
+				else {
+					pr_debug("pcmdInf->readCMDFunc == NULL\n");
+					kfree(pBuff);
+					kfree(pu1Params);
+					return -EFAULT;
+				}
 			}
 		}
 #ifdef CAM_CALGETDLT_DEBUG

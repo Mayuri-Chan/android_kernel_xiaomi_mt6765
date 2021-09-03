@@ -1,0 +1,1 @@
+obj-y += cereus_ov12a10_ofilm_Sensor.o

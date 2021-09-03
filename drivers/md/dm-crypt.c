@@ -1243,6 +1243,9 @@ static int crypt_dev_id(const char *path)
 		&& !strncmp(path, BOOTDEV_PREFIX, strlen(BOOTDEV_PREFIX))) {
 		/* example: /dev/block/by-name/userdata */
 		type = 0;
+	} else if (strstr(path, "mmcblk0p")) {
+		/* example: /dev/block/mmcblk0p1 */
+		type = 0;
 	} else if (strstr(path, "bootdevice")) {
 		/* example: /dev/block/platform/bootdevice/by-name/userdata */
 		type = 0;

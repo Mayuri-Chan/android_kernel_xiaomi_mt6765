@@ -2,6 +2,7 @@
  * Mediatek's MT6765 SoC device tree source
  *
  * Copyright (C) 2015 MediaTek Inc.
+ * Copyright (C) 2019 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -243,6 +244,21 @@
 		#address-cells = <2>;
 		#size-cells = <2>;
 		ranges;
+
+		ram_console-reserved-memory@47c80000 {
+			compatible = "mediatek,ram_console";
+			reg = <0 0x47c80000 0 0x10000>;
+		};
+
+		pstore-reserved-memory@47c90000 {
+			compatible = "mediatek,pstore";
+			reg = <0 0x47c90000 0 0xe0000>;
+		};
+
+		minirdump-reserved-memory@47d70000{
+			compatible = "mediatek,minirdump";
+			reg = <0 0x47d70000 0 0x10000>;
+		};
 
 		zmc-default {
 			compatible = "mediatek,zone_movable_cma";
@@ -662,7 +678,7 @@
 	};
 
 	goodix_fp: fingerprint {
-		compatible = "mediatek,goodix-fp";
+		compatible = "mediatek,fpc1022_irq", "mediatek,goodix-fp";
 	};
 
 	mt6357_gauge {
@@ -2394,6 +2410,10 @@
 			"TOP_ULPOSC1_D8";
 	};
 
+	swtp: swtp {
+		compatible = "mediatek, swtp-eint";
+	};
+
 	dsi_te: dsi_te {
 		compatible = "mediatek, DSI_TE-eint";
 		status = "disabled";
@@ -2581,6 +2601,22 @@
 	};
 
 	kd_camera_hw1: kd_camera_hw1@1a040000 {
+		cam0_enable_sensor = "cactus_ov13855_ofilm_mipi_raw cactus_s5k3l8_sunny_mipi_raw cereus_imx486_sunny_mipi_raw cereus_ov12a10_ofilm_mipi_raw"; // main
+		cam0_vcama-supply = <&mt_pmic_vcama_ldo_reg>;
+		cam0_vcamd-supply = <&mt_pmic_vcamd_ldo_reg>;
+		cam0_vcamio-supply = <&mt_pmic_vcamio_ldo_reg>;
+
+		cam1_enable_sensor = "cactus_hi556_sunny_mipi_raw cactus_s5k5e8yx_ofilm_mipi_raw cereus_s5k5e8yx_ofilm_mipi_raw cereus_s5k5e8yx_sunny_mipi_raw"; // sub
+		cam1_vcama-supply = <&mt_pmic_vcama_ldo_reg>;
+		cam1_vcamd-supply = <&mt_pmic_vcamd_ldo_reg>;
+		cam1_vcamio-supply = <&mt_pmic_vcamio_ldo_reg>;
+
+		cam2_enable_sensor = "cereus_s5k5e8yxaux_ofilm_mipi_raw cereus_s5k5e8yxaux_sunny_mipi_raw"; // main2
+		cam2_vcama-supply = <&mt_pmic_vcama_ldo_reg>;
+		cam2_vcamd-supply = <&mt_pmic_vcamd_ldo_reg>;
+		cam2_vcamio-supply = <&mt_pmic_vcamio_ldo_reg>;
+
+
 		compatible = "mediatek,camera_hw";
 		reg = <0 0x1a040000 0 0x1000>;
 		/* SENINF_ADDR */
@@ -2665,7 +2701,7 @@
 
 	flashlights_mt6370: flashlights_mt6370 {
 		compatible = "mediatek,flashlights_mt6370";
-		decouple = <0>;
+		decouple = <1>;
 		channel@1 {
 			type = <0>;
 			ct = <0>;
@@ -2700,20 +2736,20 @@
 		enable_pe_plus;
 		enable_pd20_reset;
 		power_path_support;
-		max_charger_voltage = <6500000>;
+		max_charger_voltage = <6000000>;
 		fast_charge_voltage = <3000000>;
 
 		/* charging current */
 		usb_charger_current = <500000>;
-		ac_charger_current = <2050000>;
-		ac_charger_input_current = <3200000>;
-		non_std_ac_charger_current = <500000>;
-		charging_host_charger_current = <1500000>;
+		ac_charger_current = <1100000>;
+		ac_charger_input_current = <1100000>;
+		non_std_ac_charger_current = <1100000>;
+		charging_host_charger_current = <1100000>;
 		ta_ac_charger_current = <3000000>;
 		pd_charger_current = <500000>;
 
 		/* battery temperature protection */
-		temp_t4_threshold = <50>;
+		temp_t4_threshold = <55>;
 		temp_t3_threshold = <45>;
 		temp_t1_threshold = <0>;
 	};
@@ -2721,7 +2757,7 @@
 	charger: charger {
 		compatible = "mediatek,charger";
 		algorithm_name = "SwitchCharging";
-		/* enable_sw_jeita; */
+		enable_sw_jeita;
 		enable_pe_plus;
 		enable_pe_2;
 		enable_pe_3;
@@ -2732,8 +2768,8 @@
 		disable_pd_dual;
 
 		/* common */
-		battery_cv = <4350000>;
-		max_charger_voltage = <6500000>;
+		battery_cv = <4400000>;
+		max_charger_voltage = <6000000>;
 		min_charger_voltage = <4600000>;
 
 		/* dynamic mivr */
@@ -2746,29 +2782,29 @@
 		usb_charger_current_unconfigured = <70000>;
 		usb_charger_current_configured = <500000>;
 		usb_charger_current = <500000>;
-		ac_charger_current = <2050000>;
-		ac_charger_input_current = <3200000>;
-		non_std_ac_charger_current = <500000>;
-		charging_host_charger_current = <1500000>;
+		ac_charger_current = <1100000>;
+		ac_charger_input_current = <1100000>;
+		non_std_ac_charger_current = <1100000>;
+		charging_host_charger_current = <1100000>;
 		apple_1_0a_charger_current = <650000>;
 		apple_2_1a_charger_current = <800000>;
 		ta_ac_charger_current = <3000000>;
 
 		/* sw jeita */
-		jeita_temp_above_t4_cv = <4240000>;
-		jeita_temp_t3_to_t4_cv = <4240000>;
-		jeita_temp_t2_to_t3_cv = <4340000>;
-		jeita_temp_t1_to_t2_cv = <4240000>;
-		jeita_temp_t0_to_t1_cv = <4040000>;
-		jeita_temp_below_t0_cv = <4040000>;
-		temp_t4_thres = <50>;
-		temp_t4_thres_minus_x_degree = <47>;
+		jeita_temp_above_t4_cv = <4100000>;
+		jeita_temp_t3_to_t4_cv = <4100000>;
+		jeita_temp_t2_to_t3_cv = <4400000>;
+		jeita_temp_t1_to_t2_cv = <4400000>;
+		jeita_temp_t0_to_t1_cv = <4400000>;
+		jeita_temp_below_t0_cv = <4400000>;
+		temp_t4_thres = <55>;
+		temp_t4_thres_minus_x_degree = <53>;
 		temp_t3_thres = <45>;
-		temp_t3_thres_minus_x_degree = <39>;
-		temp_t2_thres = <10>;
-		temp_t2_thres_plus_x_degree = <16>;
+		temp_t3_thres_minus_x_degree = <43>;
+		temp_t2_thres = <15>;
+		temp_t2_thres_plus_x_degree = <17>;
 		temp_t1_thres = <0>;
-		temp_t1_thres_plus_x_degree = <6>;
+		temp_t1_thres_plus_x_degree = <2>;
 		temp_t0_thres = <0>;
 		temp_t0_thres_plus_x_degree = <0>;
 		temp_neg_10_thres = <0>;
@@ -2776,9 +2812,9 @@
 		/* battery temperature protection */
 		enable_min_charge_temp;
 		min_charge_temp = <0>;
-		min_charge_temp_plus_x_degree = <6>;
-		max_charge_temp = <50>;
-		max_charge_temp_minus_x_degree = <47>;
+		min_charge_temp_plus_x_degree = <2>;
+		max_charge_temp = <55>;
+		max_charge_temp_minus_x_degree = <53>;
 
 		/* PE */
 		ta_12v_support;

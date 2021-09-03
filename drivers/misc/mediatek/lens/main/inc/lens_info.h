@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2015 MediaTek Inc.
+ * Copyright (C) 2019 XiaoMi, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -29,6 +30,10 @@
 #endif
 
 /* AFDRV_XXXX be the same as AF_DRVNAME in (*af).c */
+#define AFDRV_CACTUS_DW9714AF_OFILM "CACTUS_DW9714AF_OFILM"
+#define AFDRV_CACTUS_FP5510E2AF_SUNNY "CACTUS_FP5510E2AF_SUNNY"
+#define AFDRV_CEREUS_DW9714AF_OFILM "CEREUS_DW9714AF_OFILM"
+#define AFDRV_CEREUS_DW9714AF_SUNNY "CEREUS_DW9714AF_SUNNY"
 
 
 #define CONVERT_CCU_TIMESTAMP 0x1000

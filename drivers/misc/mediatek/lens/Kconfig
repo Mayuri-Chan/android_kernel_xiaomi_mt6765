@@ -54,4 +54,42 @@ config MTK_LENS_USE_MODULE
 # LENS
 #
 
+config MTK_LENS_CACTUS_DW9714AF_OFILM_SUPPORT
+	bool "CACTUS DW9714AF OFILM Lens Driver"
+	depends on MTK_LENS_MAIN
+	default n
+	help
+	  CACTUS DW9714AF OFILM Lens Driver
+	  This config is used to enable the corresponding
+	  lens driver for the camera sensor module
+	  Set as y if the driver is used in this project
 
+config MTK_LENS_CACTUS_FP5510E2AF_SUNNY_SUPPORT
+	bool "CACTUS FP5510E2AF SUNNY Lens Driver"
+	depends on MTK_LENS_MAIN
+	default n
+	help
+	  CACTUS FP5510E2AF SUNNY Lens Driver
+	  This config is used to enable the corresponding
+	  lens driver for the camera sensor module
+	  Set as y if the driver is used in this project
+
+config MTK_LENS_CEREUS_DW9714AF_OFILM_SUPPORT
+	bool "CEREUS DW9714AF OFILM Lens Driver"
+	depends on MTK_LENS_MAIN
+	default n
+	help
+	  CEREUS DW9714AF OFILM Lens Driver
+	  This config is used to enable the corresponding
+	  lens driver for the camera sensor module
+	  Set as y if the driver is used in this project
+
+config MTK_LENS_CEREUS_DW9714AF_SUNNY_SUPPORT
+	bool "CEREUS DW9714AF SUNNY Lens Driver"
+	depends on MTK_LENS_MAIN
+	default n
+	help
+	  CEREUS DW9714AF SUNNY Lens Driver
+	  This config is used to enable the corresponding
+	  lens driver for the camera sensor module
+	  Set as y if the driver is used in this project

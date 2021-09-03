@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2016 MediaTek Inc.
+ * Copyright (C) 2019 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -33,6 +34,48 @@ struct stCAM_CAL_INFO_STRUCT {
 	u32 deviceID;
 	u8 *pu1Params;
 };
+
+struct stCAM_CAL_DATAINFO_STRUCT {
+	u32 sensorID;
+	/*
+	 * MAIN = 0x01,
+	 * SUB  = 0x02,
+	 * MAIN_2 = 0x04,
+	 * SUB_2 = 0x08,
+	 * MAIN_3 = 0x10,
+	 */
+	u32 deviceID;
+	u32 dataLength;
+	u32 sensorVendorId;
+	u8 vendorByte[4];
+	u8 *dataBuffer;
+};
+
+typedef enum {
+	MODULE_ITEM = 0,
+	AWB_ITEM,
+	SEGMENT_ITEM,
+	AF_ITEM,
+	LSC_ITEM,
+	PDAF_ITEM,
+	DUALCAM_ITEM,
+	TOTAL_ITEM,
+	MAX_ITEM,
+} stCAM_CAL_CHECKSUM_ITEM;
+
+struct stCAM_CAL_CHECKSUM_STRUCT {
+	stCAM_CAL_CHECKSUM_ITEM item;
+	u32 flagAdrees;
+	u32 startAdress;
+	u32 endAdress;
+	u32 checksumAdress;
+	u8 validFlag;
+};
+
+extern void imgSensorSetDataEfuseID(u8 *buf, u32 deviceID, u32 length);
+extern int imgSensorCheckEepromData(struct stCAM_CAL_DATAINFO_STRUCT *pData, struct stCAM_CAL_CHECKSUM_STRUCT *cData);
+extern int imgSensorReadEepromData(struct stCAM_CAL_DATAINFO_STRUCT *pData, struct stCAM_CAL_CHECKSUM_STRUCT *checkData, unsigned int efuseCount);
+extern int imgSensorSetEepromData(struct stCAM_CAL_DATAINFO_STRUCT *pData);
 
 #ifdef CONFIG_COMPAT
 

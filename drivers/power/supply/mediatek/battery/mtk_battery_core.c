@@ -64,6 +64,7 @@
 #include <mt-plat/upmu_common.h>
 #include <pmic_lbat_service.h>
 
+#include <mtk_auxadc.h>
 #include <mtk_gauge_class.h>
 #include "mtk_battery_internal.h"
 #include <mtk_gauge_time_service.h>

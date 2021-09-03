@@ -1,0 +1,1 @@
+obj-y += cereus_imx486_sunny_Sensor.o

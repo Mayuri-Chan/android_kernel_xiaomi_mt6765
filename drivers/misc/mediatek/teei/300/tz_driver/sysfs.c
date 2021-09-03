@@ -30,7 +30,6 @@
 
 static uint32_t imsg_log_level = IMSG_LOG_LEVEL;
 static DEFINE_MUTEX(drv_load_mutex);
-unsigned long spi_ready_flag;
 
 static ssize_t imsg_log_test_show(struct device *cd,
 			struct device_attribute *attr, char *buf)
@@ -240,9 +239,6 @@ static int load_ut_drv(struct TEEC_UUID *uuid)
 	int res;
 	int ret = 0;
 	struct ut_drv_entry *new_entry, *tmp_entry;
-	struct TEEC_UUID spi_uuid = { 0x93feffcc, 0xd8ca, 0x11e7,
-					{ 0x96, 0xc7, 0xc7, 0xa2,
-						0x1a, 0xcb, 0x49, 0x32 } };
 
 	if (!is_teei_ready()) {
 		IMSG_WARN("TEE is not ready\n");
@@ -294,12 +290,6 @@ static int load_ut_drv(struct TEEC_UUID *uuid)
 							new_entry->driver_id);
 
 	list_add_tail(&new_entry->list, &ut_drv_list);
-
-	if (is_uuid_equal(&new_entry->uuid, &spi_uuid)) {
-		IMSG_DEBUG("spi driver is loaded successful!\n");
-		spi_ready_flag = 1;
-		wake_up(&__wait_spi_wq);
-	}
 
 	goto exit;
 

@@ -1,0 +1,1 @@
+obj-y += cactus_hi556_sunny_Sensor.o

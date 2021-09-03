@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2015 MediaTek Inc.
+ * Copyright (C) 2019 XiaoMi, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -48,20 +49,27 @@ int display_bias_regulator_init(void)
 }
 EXPORT_SYMBOL(display_bias_regulator_init);
 
+extern int g_Lcm_Bias_Voltage;
+
 int display_bias_enable(void)
 {
 	int ret = 0;
 	int retval = 0;
 
+	if (g_Lcm_Bias_Voltage == 0) {
+		pr_warn("the target voltage is 0, do nothing\n");
+		return ret;
+	}
+
 	display_bias_regulator_init();
 
 	/* set voltage with min & max*/
-	ret = regulator_set_voltage(disp_bias_pos, 5400000, 5400000);
+	ret = regulator_set_voltage(disp_bias_pos, g_Lcm_Bias_Voltage, g_Lcm_Bias_Voltage);
 	if (ret < 0)
 		pr_info("set voltage disp_bias_pos fail, ret = %d\n", ret);
 	retval |= ret;
 
-	ret = regulator_set_voltage(disp_bias_neg, 5400000, 5400000);
+	ret = regulator_set_voltage(disp_bias_neg, g_Lcm_Bias_Voltage, g_Lcm_Bias_Voltage);
 	if (ret < 0)
 		pr_info("set voltage disp_bias_neg fail, ret = %d\n", ret);
 	retval |= ret;

@@ -196,13 +196,8 @@ int swtp_init(int md_id)
 {
 	int i, ret = 0;
 	struct device_node *node = NULL;
-#ifdef CONFIG_MTK_EIC
-	u32 ints[2] = { 0, 0 };
-	u32 ints1[2] = { 0, 0 };
-#else
 	u32 ints[1] = { 0 };
-	u32 ints1[4] = { 0, 0, 0, 0 };
-#endif
+	u32 ints1[2] = { 0, 0 };
 
 	swtp_data[md_id].md_id = md_id;
 	spin_lock_init(&swtp_data[md_id].spinlock);
@@ -213,22 +208,25 @@ int swtp_init(int md_id)
 	if (node) {
 		ret = of_property_read_u32_array(node, "debounce",
 				ints, ARRAY_SIZE(ints));
+		if (ret)
+			CCCI_LEGACY_ERR_LOG(md_id, SYS,
+				"%s get property debounce  fail\n", __func__);
 		ret |= of_property_read_u32_array(node, "interrupts",
 				ints1, ARRAY_SIZE(ints1));
 		if (ret)
 			CCCI_LEGACY_ERR_LOG(md_id, SYS,
 				"%s get property fail\n", __func__);
 
-#ifdef CONFIG_MTK_EIC /* for chips before mt6739 */
-			swtp_data[md_id].gpiopin[i] = ints[0];
-			swtp_data[md_id].setdebounce[i] = ints[1];
-			swtp_data[md_id].eint_type[i] = ints1[1];
-#else /* for mt6739,and chips after mt6739 */
+		CCCI_LEGACY_ERR_LOG(md_id, SYS,
+				"%s get property:gpio=%d,setdebounce=%d, eint_type=%d\n",
+				 __func__,
+				 swtp_data[md_id].gpiopin[i],
+				 swtp_data[md_id].setdebounce[i],
+				 swtp_data[md_id].eint_type[i]);
+
 			swtp_data[md_id].setdebounce[i] = ints[0];
-			swtp_data[md_id].gpiopin[i] =
-				of_get_named_gpio(node, "deb-gpios", 0);
+			swtp_data[md_id].gpiopin[i] = ints1[0];
 			swtp_data[md_id].eint_type[i] = ints1[1];
-#endif
 			gpio_set_debounce(swtp_data[md_id].gpiopin[i],
 			swtp_data[md_id].setdebounce[i]);
 			swtp_data[md_id].irq[i] = irq_of_parse_and_map(node, 0);
@@ -241,8 +239,9 @@ int swtp_init(int md_id)
 				"swtp%d-eint IRQ LINE NOT AVAILABLE\n", i);
 		} else {
 			CCCI_LEGACY_ALWAYS_LOG(md_id, SYS,
-				"swtp%d-eint set EINT finished, irq=%d, setdebounce=%d, eint_type=%d\n",
+				"swtp%d-eint set EINT finished, irq=%d, gpio=%d, setdebounce=%d, eint_type=%d\n",
 				i, swtp_data[md_id].irq[i],
+				swtp_data[md_id].gpiopin[i],
 				swtp_data[md_id].setdebounce[i],
 				swtp_data[md_id].eint_type[i]);
 		}

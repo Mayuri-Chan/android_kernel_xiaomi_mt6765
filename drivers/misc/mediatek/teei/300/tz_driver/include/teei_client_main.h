@@ -105,7 +105,6 @@ extern struct task_struct *teei_switch_task;
 extern struct kthread_worker ut_fastcall_worker;
 extern unsigned long ut_pm_count;
 extern struct mutex device_cnt_mutex;
-extern unsigned long spi_ready_flag;
 
 void ut_pm_mutex_lock(struct mutex *lock);
 void ut_pm_mutex_unlock(struct mutex *lock);

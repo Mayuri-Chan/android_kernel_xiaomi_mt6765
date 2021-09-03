@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2015 MediaTek Inc.
+ * Copyright (C) 2019 XiaoMi, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -90,6 +91,22 @@ static struct stAF_OisPosInfo OisPosInfo;
 /* ------------------------- */
 
 static struct stAF_DrvList g_stAF_DrvList[MAX_NUM_OF_LENS] = {
+#ifdef CONFIG_MTK_LENS_CACTUS_DW9714AF_OFILM_SUPPORT
+	{1, AFDRV_CACTUS_DW9714AF_OFILM, CACTUS_DW9714AF_OFILM_SetI2Cclient, CACTUS_DW9714AF_OFILM_Ioctl,
+	 CACTUS_DW9714AF_OFILM_Release, CACTUS_DW9714AF_OFILM_GetFileName, NULL},
+#endif
+#ifdef CONFIG_MTK_LENS_CACTUS_FP5510E2AF_SUNNY_SUPPORT
+	{1, AFDRV_CACTUS_FP5510E2AF_SUNNY, CACTUS_FP5510E2AF_SUNNY_SetI2Cclient, CACTUS_FP5510E2AF_SUNNY_Ioctl,
+	 CACTUS_FP5510E2AF_SUNNY_Release, CACTUS_FP5510E2AF_SUNNY_GetFileName, NULL},
+#endif
+#ifdef CONFIG_MTK_LENS_CEREUS_DW9714AF_OFILM_SUPPORT
+	{1, AFDRV_CEREUS_DW9714AF_OFILM, CEREUS_DW9714AF_OFILM_SetI2Cclient, CEREUS_DW9714AF_OFILM_Ioctl,
+	 CEREUS_DW9714AF_OFILM_Release, CEREUS_DW9714AF_OFILM_GetFileName, NULL},
+#endif
+#ifdef CONFIG_MTK_LENS_CEREUS_DW9714AF_SUNNY_SUPPORT
+	{1, AFDRV_CEREUS_DW9714AF_SUNNY, CEREUS_DW9714AF_SUNNY_SetI2Cclient, CEREUS_DW9714AF_SUNNY_Ioctl,
+	 CEREUS_DW9714AF_SUNNY_Release, CEREUS_DW9714AF_SUNNY_GetFileName, NULL},
+#endif
 };
 
 static struct stAF_DrvList *g_pstAF_CurDrv;
@@ -126,7 +143,7 @@ void AFRegulatorCtrl(int Stage)
 				kd_node = lens_device->of_node;
 				lens_device->of_node = node;
 
-				#if defined(CONFIG_MACH_MT6761)
+				#if defined(CONFIG_MACH_MT6765)
 				regVCAMAF = regulator_get(lens_device,
 							  "vldo28");
 				#else

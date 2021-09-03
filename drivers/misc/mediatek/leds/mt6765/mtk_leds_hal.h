@@ -52,6 +52,7 @@ extern void mt_mt65xx_led_set(struct led_classdev *led_cdev,
 extern int mt_mt65xx_blink_set(struct led_classdev *led_cdev,
 			       unsigned long *delay_on,
 			       unsigned long *delay_off);
+extern int mt6370_flashlight_strobe_node(int level);
 
 extern struct cust_mt65xx_led *mt_get_cust_led_list(void);
 
