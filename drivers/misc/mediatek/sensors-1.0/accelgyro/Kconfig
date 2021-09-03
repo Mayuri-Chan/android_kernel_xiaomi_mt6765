@@ -1,0 +1,15 @@
+
+config MTK_AUTO_DETECT_ACCELGYRO
+	bool "MTK AUTO DETECT ACCELEGYRO Sensor"
+	depends on MTK_SENSOR_SUPPORT
+	help
+	  one load to support different accelerometer and gyro sensor.
+	  If this option is set, multiple accelerometer and gyro driver
+	  can be configured at the same time, but only one
+	  can be probed.
+
+config CUSTOM_KERNEL_ACCELGYRO
+	bool "CUSTOM KERNEL ACCELGYRO Config"
+	help
+	  accelgyro sensor provides precise acceleration
+	  and angular rate (gyroscopic) measurement.
