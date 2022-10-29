@@ -14,10 +14,10 @@
 
 import sys, os
 import re
-import ConfigParser
+import configparser as ConfigParser
 import xml.dom.minidom
 
-from ModuleObj import ModuleObj
+from obj.ModuleObj import ModuleObj
 from data.PmicData import PmicData
 
 from utility.util import log
@@ -25,6 +25,8 @@ from utility.util import LogLevel
 from utility.util import compare
 from utility.util import sorted_key
 
+def cmp(a, b):
+    return bool(a > b) - bool(a < b)
 
 class PmicObj(ModuleObj):
     def __init__(self):
