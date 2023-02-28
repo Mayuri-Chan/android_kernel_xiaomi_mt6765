@@ -260,7 +260,6 @@ static int recover_inode(struct inode *inode, struct page *page)
 				make_kprojid(&init_user_ns, i_projid);
 		}
 	}
-
 	f2fs_i_size_write(inode, le64_to_cpu(raw->i_size));
 	inode->i_atime.tv_sec = le64_to_cpu(raw->i_atime);
 	inode->i_ctime.tv_sec = le64_to_cpu(raw->i_ctime);
