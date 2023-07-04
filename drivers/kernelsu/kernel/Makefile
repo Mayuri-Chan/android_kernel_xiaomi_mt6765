@@ -13,7 +13,7 @@ obj-y += kernel_compat.o
 
 obj-y += selinux/
 
-ccflags-y += -DKSU_VERSION=1200
+ccflags-y += -DKSU_VERSION=12000
 
 ifndef EXPECTED_SIZE
 EXPECTED_SIZE := 0x033b
