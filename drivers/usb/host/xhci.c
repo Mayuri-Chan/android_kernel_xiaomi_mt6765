@@ -76,6 +76,24 @@ int xhci_handshake(void __iomem *ptr, u32 mask, u32 done, int usec)
 	return ret;
 }
 
+int xhci_handshake_check_state(struct xhci_hcd *xhci,
+		void __iomem *ptr, u32 mask, u32 done, int usec)
+{
+	u32	result;
+
+	do {
+		result = readl_relaxed(ptr);
+		if (result == ~(u32)0 ||
+		xhci->xhc_state == XHCI_STATE_REMOVING)	/* card removed */
+			return -ENODEV;
+		result &= mask;
+		if (result == done)
+			return 0;
+		udelay(1);
+		usec--;
+	} while (usec > 0);
+	return -ETIMEDOUT;
+}
 /*
  * Disable interrupts and begin the xHCI halting process.
  */
@@ -985,7 +1003,7 @@ int xhci_suspend(struct xhci_hcd *xhci, bool do_wakeup)
 	command |= CMD_CSS;
 	writel(command, &xhci->op_regs->command);
 	if (xhci_handshake(&xhci->op_regs->status,
-				STS_SAVE, 0, 20 * 1000)) {
+				STS_SAVE, 0, 10 * 1000)) {
 		xhci_warn(xhci, "WARN: xHC save state timeout\n");
 		spin_unlock_irq(&xhci->lock);
 		return -ETIMEDOUT;
@@ -1045,18 +1063,6 @@ int xhci_resume(struct xhci_hcd *xhci, bool hibernated)
 		hibernated = true;
 
 	if (!hibernated) {
-		/*
-		 * Some controllers might lose power during suspend, so wait
-		 * for controller not ready bit to clear, just as in xHC init.
-		 */
-		retval = xhci_handshake(&xhci->op_regs->status,
-					STS_CNR, 0, 10 * 1000 * 1000);
-		if (retval) {
-			xhci_warn(xhci, "Controller not ready at resume %d\n",
-				  retval);
-			spin_unlock_irq(&xhci->lock);
-			return retval;
-		}
 		/* step 1: restore register */
 		xhci_restore_registers(xhci);
 		/* step 2: initialize command ring buffer */
@@ -3648,6 +3654,10 @@ void xhci_free_dev(struct usb_hcd *hcd, struct usb_device *udev)
 		pm_runtime_put_noidle(hcd->self.controller);
 #endif
 
+#if IS_ENABLED(CONFIG_MTK_UAC_POWER_SAVING)
+	xhci->quirks &= ~XHCI_DEV_WITH_SYNC_EP;
+#endif
+
 	ret = xhci_check_args(hcd, udev, NULL, 0, true, __func__);
 	/* If the host is halted due to driver unload, we still need to free the
 	 * device.
@@ -4522,12 +4532,12 @@ static int xhci_update_timeout_for_endpoint(struct xhci_hcd *xhci,
 	alt_timeout = xhci_call_host_update_timeout_for_endpoint(xhci, udev,
 		desc, state, timeout);
 
-	/* If we found we can't enable hub-initiated LPM, and
+	/* If we found we can't enable hub-initiated LPM, or
 	 * the U1 or U2 exit latency was too high to allow
-	 * device-initiated LPM as well, then we will disable LPM
-	 * for this device, so stop searching any further.
+	 * device-initiated LPM as well, just stop searching.
 	 */
-	if (alt_timeout == USB3_LPM_DISABLED) {
+	if (alt_timeout == USB3_LPM_DISABLED ||
+			alt_timeout == USB3_LPM_DEVICE_INITIATED) {
 		*timeout = alt_timeout;
 		return -E2BIG;
 	}
@@ -4638,12 +4648,10 @@ static u16 xhci_calculate_lpm_timeout(struct usb_hcd *hcd,
 		if (intf->dev.driver) {
 			driver = to_usb_driver(intf->dev.driver);
 			if (driver && driver->disable_hub_initiated_lpm) {
-				dev_dbg(&udev->dev, "Hub-initiated %s disabled at request of driver %s\n",
-					state_name, driver->name);
-				timeout = xhci_get_timeout_no_hub_lpm(udev,
-								      state);
-				if (timeout == USB3_LPM_DISABLED)
-					return timeout;
+				dev_dbg(&udev->dev, "Hub-initiated %s disabled "
+						"at request of driver %s\n",
+						state_name, driver->name);
+				return xhci_get_timeout_no_hub_lpm(udev, state);
 			}
 		}
 
