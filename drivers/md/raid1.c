@@ -717,9 +717,9 @@ static int raid1_congested(struct mddev *mddev, int bits)
 			 * non-congested targets, it can be removed
 			 */
 			if ((bits & (1 << WB_async_congested)) || 1)
-				ret |= bdi_congested(&q->backing_dev_info, bits);
+				ret |= bdi_congested(q->backing_dev_info, bits);
 			else
-				ret &= bdi_congested(&q->backing_dev_info, bits);
+				ret &= bdi_congested(q->backing_dev_info, bits);
 		}
 	}
 	rcu_read_unlock();
@@ -2960,13 +2960,6 @@ static int raid1_run(struct mddev *mddev)
 		    !test_bit(In_sync, &conf->mirrors[i].rdev->flags) ||
 		    test_bit(Faulty, &conf->mirrors[i].rdev->flags))
 			mddev->degraded++;
-	/*
-	 * RAID1 needs at least one disk in active
-	 */
-	if (conf->raid_disks - mddev->degraded < 1) {
-		ret = -EINVAL;
-		goto abort;
-	}
 
 	if (conf->raid_disks - mddev->degraded == 1)
 		mddev->recovery_cp = MaxSector;
@@ -3001,12 +2994,8 @@ static int raid1_run(struct mddev *mddev)
 	ret =  md_integrity_register(mddev);
 	if (ret) {
 		md_unregister_thread(&mddev->thread);
-		goto abort;
+		raid1_free(mddev, conf);
 	}
-	return 0;
-
-abort:
-	raid1_free(mddev, conf);
 	return ret;
 }
 
