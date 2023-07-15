@@ -1898,15 +1898,14 @@ static int tegra_pcie_parse_dt(struct tegra_pcie *pcie)
 		err = of_pci_get_devfn(port);
 		if (err < 0) {
 			dev_err(dev, "failed to parse address: %d\n", err);
-			goto err_node_put;
+			return err;
 		}
 
 		index = PCI_SLOT(err);
 
 		if (index < 1 || index > soc->num_ports) {
 			dev_err(dev, "invalid port number: %d\n", index);
-			err = -EINVAL;
-			goto err_node_put;
+			return -EINVAL;
 		}
 
 		index--;
@@ -1915,13 +1914,12 @@ static int tegra_pcie_parse_dt(struct tegra_pcie *pcie)
 		if (err < 0) {
 			dev_err(dev, "failed to parse # of lanes: %d\n",
 				err);
-			goto err_node_put;
+			return err;
 		}
 
 		if (value > 16) {
 			dev_err(dev, "invalid # of lanes: %u\n", value);
-			err = -EINVAL;
-			goto err_node_put;
+			return -EINVAL;
 		}
 
 		lanes |= value << (index << 3);
@@ -1935,15 +1933,13 @@ static int tegra_pcie_parse_dt(struct tegra_pcie *pcie)
 		lane += value;
 
 		rp = devm_kzalloc(dev, sizeof(*rp), GFP_KERNEL);
-		if (!rp) {
-			err = -ENOMEM;
-			goto err_node_put;
-		}
+		if (!rp)
+			return -ENOMEM;
 
 		err = of_address_to_resource(port, 0, &rp->regs);
 		if (err < 0) {
 			dev_err(dev, "failed to parse address: %d\n", err);
-			goto err_node_put;
+			return err;
 		}
 
 		INIT_LIST_HEAD(&rp->list);
@@ -1970,10 +1966,6 @@ static int tegra_pcie_parse_dt(struct tegra_pcie *pcie)
 		return err;
 
 	return 0;
-
-err_node_put:
-	of_node_put(port);
-	return err;
 }
 
 /*
