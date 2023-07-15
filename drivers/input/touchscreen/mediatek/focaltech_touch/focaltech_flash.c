@@ -3,6 +3,7 @@
  * FocalTech fts TouchScreen driver.
  *
  * Copyright (c) 2010-2017, Focaltech Ltd. All rights reserved.
+ * Copyright (C) 2019 XiaoMi, Inc.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -41,29 +42,37 @@
 /*****************************************************************************
 * Global variable or extern global variabls/functions
 *****************************************************************************/
+extern  char focal_tp_lockdown_info[128];
+
 /* Upgrade FW/PRAMBOOT/LCD CFG */
 u8 fw_file[] = {
-//#include FTS_UPGRADE_FW_FILE
+#include FTS_UPGRADE_FW_FILE
 };
 
 u8 fw_file2[] = {
-//#include FTS_UPGRADE_FW2_FILE
+#include FTS_UPGRADE_FW2_FILE
 };
 
 u8 fw_file3[] = {
-//#include FTS_UPGRADE_FW3_FILE
+#include FTS_UPGRADE_FW3_FILE
+};
+
+u8 fw_file4[] = {
+#include FTS_UPGRADE_FW4_FILE
 };
 
 struct upgrade_fw fw_list[] = {
     {FTS_VENDOR_ID, fw_file, sizeof(fw_file)},
     {FTS_VENDOR_ID2, fw_file2, sizeof(fw_file2)},
     {FTS_VENDOR_ID3, fw_file3, sizeof(fw_file3)},
+    {FTS_VENDOR_ID4, fw_file4, sizeof(fw_file4)},
 };
 
 struct upgrade_func *upgrade_func_list[] = {
     &upgrade_func_ft5x46,
 };
 struct fts_upgrade *fwupgrade;
+extern u8 focal_lcm_maker;
 /*****************************************************************************
 * Static function prototypes
 *****************************************************************************/
@@ -1526,11 +1535,13 @@ void fts_fwupg_auto_upgrade(struct fts_ts_data *ts_data)
 int fts_fwupg_get_vendorid(struct fts_ts_data *ts_data, u16 *vid)
 {
     int ret = 0;
+    int err =0;
     bool fwvalid = false;
     u8 vendor_id = 0;
     u8 module_id = 0;
     u32 fwcfg_addr = 0;
     u8 cfgbuf[FTS_HEADER_LEN] = { 0 };
+    u8  r_buf[10] = {0};
     struct i2c_client *client = ts_data->client;
     struct fts_upgrade *upg = fwupgrade;
 
@@ -1539,7 +1550,24 @@ int fts_fwupg_get_vendorid(struct fts_ts_data *ts_data, u16 *vid)
         FTS_ERROR("upgrade/func/vid is null");
         return -EINVAL;
     }
-
+	//add xionghuihua
+	err = fts_flash_read(client, 0xd7a0, r_buf, 8);//read lockdown info
+	if(err < 0)
+		FTS_ERROR("[FTS] i2c read lockdown_buf err\n");
+    if(0x32 == r_buf[2]){
+	sprintf(focal_tp_lockdown_info, "%02x%02x%02x%02x%02x%02x%02x%02x_black", \
+			r_buf[0], r_buf[1], r_buf[2], r_buf[3], r_buf[4], r_buf[5], r_buf[6], r_buf[7]);
+    	}else if(0x31 == r_buf[2]){
+	sprintf(focal_tp_lockdown_info, "%02x%02x%02x%02x%02x%02x%02x%02x_white", \
+			r_buf[0], r_buf[1], r_buf[2], r_buf[3], r_buf[4], r_buf[5], r_buf[6], r_buf[7]);
+		}else{
+	sprintf(focal_tp_lockdown_info, "%02x%02x%02x%02x%02x%02x%02x%02x", \
+			r_buf[0], r_buf[1], r_buf[2], r_buf[3], r_buf[4], r_buf[5], r_buf[6], r_buf[7]);
+		}
+	focal_lcm_maker = r_buf[1];
+	FTS_INFO("focal ctpm_LockDownInfo_get_from_boot, tp_lockdown_info=%s", focal_tp_lockdown_info);
+	//add xionghuihua
+	
     fwvalid = fts_fwupg_check_fw_valid(client);
     if (fwvalid) {
         ret = fts_i2c_read_reg(client, FTS_REG_VENDOR_ID, &vendor_id);
@@ -1587,7 +1615,10 @@ static int fts_fwupg_get_fw_file(struct fts_ts_data *ts_data)
     int ret = 0;
     int i = 0;
     u16 vendor_id = 0;
+	char r_buf[8] = {0};
 
+	ret = fts_flash_read(ts_data->client, 0xd7a0, r_buf, 8);//read lockdown info
+	
     /* support multi vendor, must read correct vendor id */
     ret = fts_fwupg_get_vendorid(ts_data, &vendor_id);
     if (ret < 0) {
@@ -1598,8 +1629,26 @@ static int fts_fwupg_get_fw_file(struct fts_ts_data *ts_data)
     for (i = 0; i < FTS_GET_VENDOR_ID_NUM; i++) {
         fw = &fw_list[i];
         if (vendor_id == fw->vendor_id) {
-            FTS_INFO("vendor id match, get fw file successfully");
-            break;
+#if 1
+			FTS_INFO("vendor id match, get fw file successfully,lockdowninfo[1]:0x%x",r_buf[1]);
+			if(r_buf[1] == 0x36) {// upgrade C3C_FT5446_Ofilm_TM_White_V02_D01_20180122_app.i
+				 FTS_INFO("vendor id match, get fw file successfully,TM display maker ID:0x%x",r_buf[1]);
+           		 break;
+			}else if(r_buf[1] == 0x37) {
+				 fw = &fw_list[1];// upgrade C3C_FT5446_Ofilm_EBBG_White_V02_D01_20180122_app.i 
+				  FTS_INFO("vendor id match, get fw file successfully,EBBG display maker ID:0x%x",r_buf[1]);
+				 break;
+			}else if(r_buf[1] == 0x35 && fw->vendor_id == 0x51) {
+				 fw = &fw_list[2];// upgrade OFLIM + BOE 
+				  FTS_INFO("vendor id match, get fw file successfully,Oflim + BOE display maker ID:0x%x",r_buf[1]);
+				 break;
+			}else if(r_buf[1] == 0x35 && fw->vendor_id == 0x6d) {
+				 fw = &fw_list[3];// upgrade LENS + BOE 
+				  FTS_INFO("vendor id match, get fw file successfully,LENS + BOE display maker ID:0x%x",r_buf[1]);
+				 break;
+			}
+#endif
+
         }
     }
     if (i >= FTS_GET_VENDOR_ID_NUM) {

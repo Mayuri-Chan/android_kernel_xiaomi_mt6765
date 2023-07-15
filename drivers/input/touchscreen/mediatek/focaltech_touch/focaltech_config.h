@@ -3,6 +3,7 @@
  * FocalTech TouchScreen driver.
  *
  * Copyright (c) 2010-2017, FocalTech Systems, Ltd., all rights reserved.
+ * Copyright (C) 2019 XiaoMi, Inc.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -15,17 +16,18 @@
  *
  */
 /************************************************************************
- * File Name: focaltech_config.h
- *
- *    Author: Focaltech Driver Team
- *
- *   Created: 2016-08-08
- *
- *  Abstract: global configurations
- *
- *   Version: v1.0
- *
- ************************************************************************/
+*
+* File Name: focaltech_config.h
+*
+*    Author: Focaltech Driver Team
+*
+*   Created: 2016-08-08
+*
+*  Abstract: global configurations
+*
+*   Version: v1.0
+*
+************************************************************************/
 #ifndef _LINUX_FOCLATECH_CONFIG_H_
 #define _LINUX_FOCLATECH_CONFIG_H_
 
@@ -99,7 +101,10 @@
  * show debug log info
  * enable it for debug, disable it for release
  */
-#define FTS_DEBUG_EN 0
+#define FTS_DEBUG_EN                            1
+
+
+#define FTS_LOCK_DOWN_INFO			1
 
 /*
  * Linux MultiTouch Protocol
@@ -110,26 +115,26 @@
 /*
  * Report Pressure in multitouch
  * 1:enable(default),0:disable
- */
+*/
 #define FTS_REPORT_PRESSURE_EN                  1
 
 /*
  * Gesture function enable
  * default: disable
  */
-#define FTS_GESTURE_EN                          0
+#define FTS_GESTURE_EN                          1 
 
 /*
  * ESD check & protection
  * default: disable
  */
-#define FTS_ESDCHECK_EN                         0
+#define FTS_ESDCHECK_EN                         1
 
 /*
  * Production test enable
  * 1: enable, 0:disable(default)
  */
-#define FTS_TEST_EN                             0//modify by cassy from 1 to 0
+#define FTS_TEST_EN                             1//modify by cassy from 1 to 0
 
 /*
  * Glove mode enable
@@ -172,8 +177,11 @@
 /*
  * auto upgrade, please keep enable
  */
-#define FTS_AUTO_UPGRADE_EN                     0
-
+//#ifdef WT_COMPILE_FACTORY_VERSION
+//#define FTS_AUTO_UPGRADE_EN 					0// for factory version
+//#else
+#define FTS_AUTO_UPGRADE_EN                     1//modify by cassy from 1 to 0;focal
+//#endif
 /*
  * auto upgrade for lcd cfg
  */
@@ -184,7 +192,7 @@
  * 0:No check vendor_id (default)
  * 1/2/3: Check vendor_id for vendor compatibility
  */
-#define FTS_GET_VENDOR_ID_NUM                   0
+#define FTS_GET_VENDOR_ID_NUM                   4 //0
 
 /*
  * vendor_id(s) for vendor(s) to be compatible with.
@@ -195,26 +203,33 @@
  * FTS_GET_VENDOR_ID_NUM >= 2, compatible with FTS_VENDOR_ID2
  * FTS_GET_VENDOR_ID_NUM >= 3, compatible with FTS_VENDOR_ID3
  */
-#define FTS_VENDOR_ID                          0x0000
-#define FTS_VENDOR_ID2                         0x0000
-#define FTS_VENDOR_ID3                         0x0000
+#define FTS_VENDOR_ID                          0x0051
+#define FTS_VENDOR_ID2                         0x0051
+#define FTS_VENDOR_ID3                         0x0051
+#define FTS_VENDOR_ID4                         0x006d
 
 /*
  * FW.i file for auto upgrade, you must replace it with your own
  * define your own fw_file, the sample one to be replaced is invalid
- * NOTE: if FTS_GET_VENDOR_ID_NUM > 1,
- * it's the fw corresponding with FTS_VENDOR_ID
+ * NOTE: if FTS_GET_VENDOR_ID_NUM > 1, it's the fw corresponding with FTS_VENDOR_ID
  */
+#define FTS_UPGRADE_FW_FILE                      "include/firmware/FT5x46_C3C_Ofilm_TM_Black_V0a_D01_20180531_app.i"
 
 /*
  * if FTS_GET_VENDOR_ID_NUM >= 2, fw corrsponding with FTS_VENDOR_ID2
  * define your own fw_file, the sample one is invalid
  */
+#define FTS_UPGRADE_FW2_FILE                     "include/firmware/FT5x46_C3C_Ofilm_EBBG_Black_V0a_D01_20180531_app.i"
 
 /*
  * if FTS_GET_VENDOR_ID_NUM >= 3, fw corrsponding with FTS_VENDOR_ID3
  * define your own fw_file, the sample one is invalid
  */
+#define FTS_UPGRADE_FW3_FILE                     "include/firmware/FT5x46_C3C_Ofilm_BOE_Black_V09_D01_20180817_app.i"
+
+
+#define FTS_UPGRADE_FW4_FILE                     "include/firmware/FT5x46_C3C_LENS_BOE_White_V0c_D01_20180816_app.i"
+
 
 /*********************************************************/
 
