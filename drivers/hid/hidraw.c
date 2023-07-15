@@ -378,7 +378,7 @@ static long hidraw_ioctl(struct file *file, unsigned int cmd,
 
 	mutex_lock(&minors_lock);
 	dev = hidraw_table[minor];
-	if (!dev || !dev->exist) {
+	if (!dev) {
 		ret = -ENODEV;
 		goto out;
 	}
