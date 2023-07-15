@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2015 MediaTek Inc.
+ * Copyright (C) 2019 XiaoMi, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -122,6 +123,18 @@
  *
  ************************************************************************/
 /* SENSOR CHIP VERSION */
+/* CEREUS */
+#define CEREUS_IMX486_SUNNY_SENSOR_ID                        0x0486
+#define CEREUS_S5K5E8YX_SUNNY_SENSOR_ID                     (0x5e80+2)
+#define CEREUS_S5K5E8YXAUX_SUNNY_SENSOR_ID                  (0x5e80+3)
+#define CEREUS_OV12A10_OFILM_SENSOR_ID                       0x1241
+#define CEREUS_S5K5E8YX_OFILM_SENSOR_ID                     (0x5e80+4)
+#define CEREUS_S5K5E8YXAUX_OFILM_SENSOR_ID                  (0x5e80+5)
+/* CACTUS */
+#define CACTUS_OV13855_OFILM_SENSOR_ID          0xD855
+#define CACTUS_S5K3L8_SUNNY_SENSOR_ID           0x30C8
+#define CACTUS_S5K5E8YX_OFILM_SENSOR_ID         0x5e80
+#define CACTUS_HI556_SUNNY_SENSOR_ID            0x0556
 /*IMX*/
 #define IMX499_SENSOR_ID                        0x0499
 #define IMX486_SENSOR_ID                        0x0486
@@ -342,6 +355,18 @@
 /* CAMERA DRIVER NAME */
 #define CAMERA_HW_DEVNAME                       "kd_camera_hw"
 /* SENSOR DEVICE DRIVER NAME */
+/* CEREUS */
+#define SENSOR_DRVNAME_CEREUS_IMX486_SUNNY_MIPI_RAW          "cereus_imx486_sunny_mipi_raw"
+#define SENSOR_DRVNAME_CEREUS_S5K5E8YX_SUNNY_MIPI_RAW       "cereus_s5k5e8yx_sunny_mipi_raw"
+#define SENSOR_DRVNAME_CEREUS_S5K5E8YXAUX_SUNNY_MIPI_RAW    "cereus_s5k5e8yxaux_sunny_mipi_raw"
+#define SENSOR_DRVNAME_CEREUS_OV12A10_OFILM_MIPI_RAW         "cereus_ov12a10_ofilm_mipi_raw"
+#define SENSOR_DRVNAME_CEREUS_S5K5E8YX_OFILM_MIPI_RAW       "cereus_s5k5e8yx_ofilm_mipi_raw"
+#define SENSOR_DRVNAME_CEREUS_S5K5E8YXAUX_OFILM_MIPI_RAW    "cereus_s5k5e8yxaux_ofilm_mipi_raw"
+/* CACTUS */
+#define SENSOR_DRVNAME_CACTUS_OV13855_OFILM_MIPI_RAW         "cactus_ov13855_ofilm_mipi_raw"
+#define SENSOR_DRVNAME_CACTUS_S5K3L8_SUNNY_MIPI_RAW          "cactus_s5k3l8_sunny_mipi_raw"
+#define SENSOR_DRVNAME_CACTUS_S5K5E8YX_OFILM_MIPI_RAW        "cactus_s5k5e8yx_ofilm_mipi_raw"
+#define SENSOR_DRVNAME_CACTUS_HI556_SUNNY_MIPI_RAW           "cactus_hi556_sunny_mipi_raw"
 /*IMX*/
 #define SENSOR_DRVNAME_IMX499_MIPI_RAW          "imx499_mipi_raw"
 #define SENSOR_DRVNAME_IMX499_MIPI_RAW_13M      "imx499_mipi_raw_13m"

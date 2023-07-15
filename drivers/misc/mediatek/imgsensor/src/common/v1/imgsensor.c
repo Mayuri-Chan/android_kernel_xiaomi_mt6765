@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2017 MediaTek Inc.
+ * Copyright (C) 2019 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -85,6 +86,8 @@ struct IMGSENSOR *pgimgsensor = &gimgsensor;
 
 
 DEFINE_MUTEX(pinctrl_mutex);
+
+extern u8 *getImgSensorEfuseID(u32 deviceID);
 
 /************************************************************************
  * Profiling
@@ -814,6 +817,7 @@ static inline int adopt_CAMERA_HW_GetInfo2(void *pBuf)
 	MSDK_SENSOR_CONFIG_STRUCT  *pConfig4 = NULL;
 	MSDK_SENSOR_RESOLUTION_INFO_STRUCT  *psensorResolution = NULL;
 	char *pmtk_ccm_name = NULL;
+	u8 *efuseBuffer = NULL;
 
 	pSensorGetInfo = (struct IMAGESENSOR_GETINFO_STRUCT *)pBuf;
 	if (pSensorGetInfo == NULL ||
@@ -1051,6 +1055,11 @@ static inline int adopt_CAMERA_HW_GetInfo2(void *pBuf)
 	pSensorInfo->SensorGrabStartY_CST4 = pInfo3->SensorGrabStartY;
 	pSensorInfo->SensorGrabStartX_CST5 = pInfo4->SensorGrabStartX;
 	pSensorInfo->SensorGrabStartY_CST5 = pInfo4->SensorGrabStartY;
+
+	efuseBuffer = getImgSensorEfuseID(pSensorGetInfo->SensorId);
+	if (efuseBuffer) {
+		strncpy((char*)pSensorInfo->efuseID, (char*)efuseBuffer, sizeof(pSensorInfo->efuseID) - 1);
+	}
 
 	if (copy_to_user(
 	    (void __user *)(pSensorGetInfo->pInfo),
@@ -1397,13 +1406,8 @@ static inline int adopt_CAMERA_HW_FeatureControl(void *pBuf)
 			pr_err(" ioctl copy from user failed\n");
 			return -EFAULT;
 		}
-		if (FeatureParaLen > FEATURE_CONTROL_MAX_DATA_SIZE ||
-			FeatureParaLen == 0)
+		if (FeatureParaLen > FEATURE_CONTROL_MAX_DATA_SIZE)
 			return -EINVAL;
-		ret = check_length_of_para(pFeatureCtrl->FeatureId,
-							FeatureParaLen);
-		if (ret != 0)
-			return ret;
 
 		pFeaturePara = kmalloc(FeatureParaLen, GFP_KERNEL);
 		if (pFeaturePara == NULL)
@@ -1821,7 +1825,7 @@ static inline int adopt_CAMERA_HW_FeatureControl(void *pBuf)
 		    (void *)(uintptr_t) (*(pFeaturePara_64 + 1));
 		kal_uint32 *pReg = NULL;
 
-		if (sizeof(kal_uint8) * u4RegLen > PDAF_DATA_SIZE) {
+		if (u4RegLen > PDAF_DATA_SIZE) {
 			kfree(pFeaturePara);
 			pr_debug("check: u4RegLen > PDAF_DATA_SIZE\n");
 			return -EINVAL;
