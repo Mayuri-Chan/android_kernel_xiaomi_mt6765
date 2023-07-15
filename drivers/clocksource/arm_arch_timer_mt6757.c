@@ -1,12 +1,14 @@
 /*
- *  linux/drivers/clocksource/arm_arch_timer.c
- *
- *  Copyright (C) 2011 ARM Ltd.
- *  All Rights Reserved
+ * Copyright (C) 2016 MediaTek Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See http://www.gnu.org/licenses/gpl-2.0.html for more details.
  */
 
 #define pr_fmt(fmt)	"arm_arch_timer: " fmt
@@ -138,6 +140,7 @@ void arch_timer_reg_write(int access, enum arch_timer_reg reg, u32 val,
 {
 	if (access == ARCH_TIMER_MEM_PHYS_ACCESS) {
 		struct arch_timer *timer = to_arch_timer(clk);
+
 		switch (reg) {
 		case ARCH_TIMER_REG_CTRL:
 			writel_relaxed(val, timer->base + CNTP_CTL);
@@ -169,6 +172,7 @@ u32 arch_timer_reg_read(int access, enum arch_timer_reg reg,
 
 	if (access == ARCH_TIMER_MEM_PHYS_ACCESS) {
 		struct arch_timer *timer = to_arch_timer(clk);
+
 		switch (reg) {
 		case ARCH_TIMER_REG_CTRL:
 			val = readl_relaxed(timer->base + CNTP_CTL);
@@ -179,6 +183,7 @@ u32 arch_timer_reg_read(int access, enum arch_timer_reg reg,
 		}
 	} else if (access == ARCH_TIMER_MEM_VIRT_ACCESS) {
 		struct arch_timer *timer = to_arch_timer(clk);
+
 		switch (reg) {
 		case ARCH_TIMER_REG_CTRL:
 			val = readl_relaxed(timer->base + CNTV_CTL);
@@ -274,6 +279,7 @@ static __always_inline void set_next_event(const int access, unsigned long evt,
 					   struct clock_event_device *clk)
 {
 	unsigned long ctrl;
+
 	ctrl = arch_timer_reg_read(access, ARCH_TIMER_REG_CTRL, clk);
 	ctrl |= ARCH_TIMER_CTRL_ENABLE;
 	ctrl &= ~ARCH_TIMER_CTRL_IT_MASK;
@@ -371,18 +377,20 @@ static void __arch_timer_setup(unsigned type,
 		switch (arch_timer_uses_ppi) {
 		case VIRT_PPI:
 			clk->set_state_shutdown = arch_timer_shutdown_virt;
-			clk->set_state_oneshot_stopped = arch_timer_shutdown_virt;
+			clk->set_state_oneshot_stopped =
+			  arch_timer_shutdown_virt;
 			clk->set_next_event = arch_timer_set_next_event_virt;
 			break;
 		case PHYS_SECURE_PPI:
 		case PHYS_NONSECURE_PPI:
 		case HYP_PPI:
 			clk->set_state_shutdown = arch_timer_shutdown_phys;
-			clk->set_state_oneshot_stopped = arch_timer_shutdown_phys;
+			clk->set_state_oneshot_stopped =
+			  arch_timer_shutdown_phys;
 			clk->set_next_event = arch_timer_set_next_event_phys;
 			break;
 		default:
-			BUG();
+			WARN_ON(1);
 		}
 
 		fsl_a008585_set_sne(clk);
@@ -393,12 +401,14 @@ static void __arch_timer_setup(unsigned type,
 		clk->cpumask = cpu_all_mask;
 		if (arch_timer_mem_use_virtual) {
 			clk->set_state_shutdown = arch_timer_shutdown_virt_mem;
-			clk->set_state_oneshot_stopped = arch_timer_shutdown_virt_mem;
+			clk->set_state_oneshot_stopped =
+			  arch_timer_shutdown_virt_mem;
 			clk->set_next_event =
 				arch_timer_set_next_event_virt_mem;
 		} else {
 			clk->set_state_shutdown = arch_timer_shutdown_phys_mem;
-			clk->set_state_oneshot_stopped = arch_timer_shutdown_phys_mem;
+			clk->set_state_oneshot_stopped =
+			  arch_timer_shutdown_phys_mem;
 			clk->set_next_event =
 				arch_timer_set_next_event_phys_mem;
 		}
@@ -468,8 +478,10 @@ static u32 check_ppi_trigger(int irq)
 	u32 flags = irq_get_trigger_type(irq);
 
 	if (flags != IRQF_TRIGGER_HIGH && flags != IRQF_TRIGGER_LOW) {
-		pr_warn("WARNING: Invalid trigger for IRQ%d, assuming level low\n", irq);
-		pr_warn("WARNING: Please fix your firmware\n");
+		pr_debug(
+		  "WARNING: Invalid trigger for IRQ%d, assuming level low\n",
+		  irq);
+		pr_debug("WARNING: Please fix your firmware\n");
 		flags = IRQF_TRIGGER_LOW;
 	}
 
@@ -519,12 +531,13 @@ arch_timer_detect_rate(void __iomem *cntbase, struct device_node *np)
 
 	/* Check the timer frequency. */
 	if (arch_timer_rate == 0)
-		pr_warn("Architected timer frequency not available\n");
+		pr_debug("Architected timer frequency not available\n");
 }
 
 static void arch_timer_banner(unsigned type)
 {
-	pr_info("Architected %s%s%s timer(s) running at %lu.%02luMHz (%s%s%s).\n",
+	pr_info(
+	  "Architected %s%s%s timer(s) running at %lu.%02luMHz (%s%s%s).\n",
 		     type & ARCH_CP15_TIMER ? "cp15" : "",
 		     type == (ARCH_CP15_TIMER | ARCH_MEM_TIMER) ?  " and " : "",
 		     type & ARCH_MEM_TIMER ? "mmio" : "",
@@ -620,8 +633,8 @@ static void __init arch_counter_register(unsigned type)
 		arch_timer_read_counter = arch_counter_get_cntvct_mem;
 	}
 
-	if (!arch_counter_suspend_stop)
-		clocksource_counter.flags |= CLOCK_SOURCE_SUSPEND_NONSTOP;
+	/* if (!arch_counter_suspend_stop) */
+	/* clocksource_counter.flags |= CLOCK_SOURCE_SUSPEND_NONSTOP;*/
 	start_count = arch_timer_read_counter();
 	clocksource_register_hz(&clocksource_counter, arch_timer_rate);
 	cyclecounter.mult = clocksource_counter.mult;
@@ -692,7 +705,7 @@ static void __init arch_timer_cpu_pm_deinit(void)
 
 static int __init arch_timer_register(void)
 {
-	int err;
+	int err = 0;
 	int ppi;
 
 	arch_timer_evt = alloc_percpu(struct clock_event_device);
@@ -725,11 +738,11 @@ static int __init arch_timer_register(void)
 					 "arch_timer", arch_timer_evt);
 		break;
 	default:
-		BUG();
+		WARN_ON(1);
 	}
 
 	if (err) {
-		pr_err("arch_timer: can't register interrupt %d (%d)\n",
+		pr_debug("arch_timer: can't register interrupt %d (%d)\n",
 		       ppi, err);
 		goto out_free;
 	}
@@ -783,7 +796,7 @@ static int __init arch_timer_mem_register(void __iomem *base, unsigned int irq)
 
 	ret = request_irq(irq, func, IRQF_TIMER, "arch_mem_timer", &t->evt);
 	if (ret) {
-		pr_err("arch_timer: Failed to request mem timer irq\n");
+		pr_debug("arch_timer: Failed to request mem timer irq\n");
 		kfree(t);
 	}
 
@@ -821,15 +834,40 @@ static int __init arch_timer_common_init(void)
 
 	/* Wait until both nodes are probed if we have two timers */
 	if ((arch_timers_present & mask) != mask) {
-		if (arch_timer_needs_probing(ARCH_MEM_TIMER, arch_timer_mem_of_match))
+		if (arch_timer_needs_probing(ARCH_MEM_TIMER,
+					     arch_timer_mem_of_match))
 			return 0;
-		if (arch_timer_needs_probing(ARCH_CP15_TIMER, arch_timer_of_match))
+		if (arch_timer_needs_probing(ARCH_CP15_TIMER,
+					     arch_timer_of_match))
 			return 0;
 	}
 
 	arch_timer_banner(arch_timers_present);
 	arch_counter_register(arch_timers_present);
 	return arch_timer_arch_init();
+}
+
+
+int localtimer_set_next_event(unsigned long evt)
+{
+	if (arch_timer_uses_ppi == VIRT_PPI)
+		arch_timer_set_next_event_virt(evt, NULL);
+	else
+		arch_timer_set_next_event_phys(evt, NULL);
+	return 0;
+}
+
+unsigned long localtimer_get_counter(void)
+{
+	unsigned long evt;
+
+	if (arch_timer_uses_ppi == VIRT_PPI)
+		evt = arch_timer_reg_read(ARCH_TIMER_VIRT_ACCESS,
+					  ARCH_TIMER_REG_TVAL, NULL);
+	else
+		evt = arch_timer_reg_read(ARCH_TIMER_PHYS_ACCESS,
+					  ARCH_TIMER_REG_TVAL, NULL);
+	return evt;
 }
 
 static int __init arch_timer_init(void)
@@ -861,7 +899,8 @@ static int __init arch_timer_init(void)
 		}
 
 		if (!has_ppi) {
-			pr_warn("arch_timer: No interrupt available, giving up\n");
+			pr_debug(
+			  "arch_timer: No interrupt available, giving up\n");
 			return -EINVAL;
 		}
 	}
@@ -875,7 +914,7 @@ static int __init arch_timer_init(void)
 		return ret;
 
 	arch_timer_kvm_info.virtual_irq = arch_timer_ppi[VIRT_PPI];
-	
+
 	return 0;
 }
 
@@ -884,7 +923,7 @@ static int __init arch_timer_of_init(struct device_node *np)
 	int i;
 
 	if (arch_timers_present & ARCH_CP15_TIMER) {
-		pr_warn("arch_timer: multiple nodes in dt, skipping\n");
+		pr_debug("arch_timer: multiple nodes in dt, skipping\n");
 		return 0;
 	}
 
@@ -898,7 +937,8 @@ static int __init arch_timer_of_init(struct device_node *np)
 
 #ifdef CONFIG_FSL_ERRATUM_A008585
 	if (fsl_a008585_enable < 0)
-		fsl_a008585_enable = of_property_read_bool(np, "fsl,erratum-a008585");
+		fsl_a008585_enable = of_property_read_bool(np,
+							   "fsl,erratum-a008585");
 	if (fsl_a008585_enable) {
 		static_branch_enable(&arch_timer_read_ool_enabled);
 		pr_info("Enabling workaround for FSL erratum A-008585\n");
@@ -915,7 +955,7 @@ static int __init arch_timer_of_init(struct device_node *np)
 
 	/* On some systems, the counter stops ticking when in suspend. */
 	arch_counter_suspend_stop = of_property_read_bool(np,
-							 "arm,no-tick-in-suspend");
+						"arm,no-tick-in-suspend");
 
 	return arch_timer_init();
 }
@@ -932,7 +972,7 @@ static int __init arch_timer_mem_init(struct device_node *np)
 	arch_timers_present |= ARCH_MEM_TIMER;
 	cntctlbase = of_iomap(np, 0);
 	if (!cntctlbase) {
-		pr_err("arch_timer: Can't find CNTCTLBase\n");
+		pr_debug("arch_timer: Can't find CNTCTLBase\n");
 		return -ENXIO;
 	}
 
@@ -947,7 +987,7 @@ static int __init arch_timer_mem_init(struct device_node *np)
 		u32 cntacr;
 
 		if (of_property_read_u32(frame, "frame-number", &n)) {
-			pr_err("arch_timer: Missing frame-number\n");
+			pr_debug("arch_timer: Missing frame-number\n");
 			of_node_put(frame);
 			goto out;
 		}
@@ -973,10 +1013,10 @@ static int __init arch_timer_mem_init(struct device_node *np)
 		best_frame = of_node_get(frame);
 	}
 
-	ret= -ENXIO;
+	ret = -ENXIO;
 	base = arch_counter_base = of_iomap(best_frame, 0);
 	if (!base) {
-		pr_err("arch_timer: Can't map frame's registers\n");
+		pr_debug("arch_timer: Can't map frame's registers\n");
 		goto out;
 	}
 
@@ -987,7 +1027,7 @@ static int __init arch_timer_mem_init(struct device_node *np)
 
 	ret = -EINVAL;
 	if (!irq) {
-		pr_err("arch_timer: Frame missing %s irq",
+		pr_debug("arch_timer: Frame missing %s irq",
 		       arch_timer_mem_use_virtual ? "virt" : "phys");
 		goto out;
 	}
@@ -1029,7 +1069,7 @@ static int __init arch_timer_acpi_init(struct acpi_table_header *table)
 	struct acpi_table_gtdt *gtdt;
 
 	if (arch_timers_present & ARCH_CP15_TIMER) {
-		pr_warn("arch_timer: already initialized, skipping\n");
+		pr_debug("arch_timer: already initialized, skipping\n");
 		return -EINVAL;
 	}
 
