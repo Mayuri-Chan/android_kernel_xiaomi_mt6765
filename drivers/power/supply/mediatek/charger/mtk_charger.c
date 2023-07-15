@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2016 MediaTek Inc.
+ * Copyright (C) 2019 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -1490,6 +1491,19 @@ static void charger_check_status(struct charger_manager *info)
 
 	temperature = info->battery_temp;
 	thermal = &info->thermal;
+
+	if (temperature > 0 && temperature <= 5) {
+		info->data.ac_charger_current = 500000;
+		info->data.ac_charger_input_current = 400000;
+	} else if(temperature > 5 && temperature <= 15 ) {
+		info->data.ac_charger_current = 800000;
+		info->data.ac_charger_input_current = 800000;
+	} else if(temperature > 15 && temperature <= info->thermal.max_charge_temp) {
+		info->data.ac_charger_current = 1100000;
+		info->data.ac_charger_input_current = 1100000;
+	}
+	printk("battery temperature is %d, charging current set %d\n",
+			temperature, info->data.ac_charger_current);
 
 	if (info->enable_sw_jeita == true) {
 		do_sw_jeita_state_machine(info);
