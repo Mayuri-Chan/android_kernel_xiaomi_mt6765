@@ -9010,6 +9010,11 @@ F:	arch/*/oprofile/
 F:	drivers/oprofile/
 F:	include/linux/oprofile.h
 
+OP-TEE DRIVER
+M:	Jens Wiklander <jens.wiklander@linaro.org>
+S:	Maintained
+F:	drivers/tee/optee/
+
 ORACLE CLUSTER FILESYSTEM 2 (OCFS2)
 M:	Mark Fasheh <mfasheh@versity.com>
 M:	Joel Becker <jlbec@evilplan.org>
@@ -10654,6 +10659,14 @@ F:	Documentation/trace/stm.txt
 F:	drivers/hwtracing/stm/
 F:	include/linux/stm.h
 F:	include/uapi/linux/stm.h
+
+TEE SUBSYSTEM
+M:	Jens Wiklander <jens.wiklander@linaro.org>
+S:	Maintained
+F:	include/linux/tee_drv.h
+F:	include/uapi/linux/tee.h
+F:	drivers/tee/
+F:	Documentation/tee.txt
 
 THUNDERBOLT DRIVER
 M:	Andreas Noever <andreas.noever@gmail.com>
@@ -12472,6 +12485,13 @@ L:	netdev@vger.kernel.org
 W:	http://www.linux-usb.org/usbnet
 S:	Maintained
 F:	drivers/net/usb/dm9601.c
+
+USB DIAMOND RIO500 DRIVER
+M:	Cesar Miquel <miquel@df.uba.ar>
+L:	rio500-users@lists.sourceforge.net
+W:	http://rio500.sourceforge.net
+S:	Maintained
+F:	drivers/usb/misc/rio500*
 
 USB EHCI DRIVER
 M:	Alan Stern <stern@rowland.harvard.edu>
