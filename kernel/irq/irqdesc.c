@@ -19,6 +19,10 @@
 
 #include "internals.h"
 
+#ifdef CONFIG_MTK_SCHED_MONITOR
+#include "mtk_sched_mon.h"
+#endif
+
 /*
  * lockdep: we want to handle all irq_desc locks as a single lock-class:
  */
@@ -267,18 +271,6 @@ static void irq_sysfs_add(int irq, struct irq_desc *desc)
 	}
 }
 
-static void irq_sysfs_del(struct irq_desc *desc)
-{
-	/*
-	 * If irq_sysfs_init() has not yet been invoked (early boot), then
-	 * irq_kobj_base is NULL and the descriptor was never added.
-	 * kobject_del() complains about a object with no parent, so make
-	 * it conditional.
-	 */
-	if (irq_kobj_base)
-		kobject_del(&desc->kobj);
-}
-
 static int __init irq_sysfs_init(void)
 {
 	struct irq_desc *desc;
@@ -309,7 +301,6 @@ static struct kobj_type irq_kobj_type = {
 };
 
 static void irq_sysfs_add(int irq, struct irq_desc *desc) {}
-static void irq_sysfs_del(struct irq_desc *desc) {}
 
 #endif /* CONFIG_SYSFS */
 
@@ -419,7 +410,7 @@ static void free_desc(unsigned int irq)
 	 * The sysfs entry must be serialized against a concurrent
 	 * irq_sysfs_init() as well.
 	 */
-	irq_sysfs_del(desc);
+	kobject_del(&desc->kobj);
 	delete_irq_desc(irq);
 
 	/*
@@ -622,12 +613,19 @@ int __handle_domain_irq(struct irq_domain *domain, unsigned int hwirq,
 	struct pt_regs *old_regs = set_irq_regs(regs);
 	unsigned int irq = hwirq;
 	int ret = 0;
+#ifdef CONFIG_MTK_SCHED_TRACERS
+	//struct irq_desc *desc;
+#endif
 
 	irq_enter();
 
 #ifdef CONFIG_IRQ_DOMAIN
 	if (lookup)
 		irq = irq_find_mapping(domain, hwirq);
+#endif
+
+#ifdef CONFIG_MTK_SCHED_MONITOR
+	mt_trace_ISR_start(irq);
 #endif
 
 	/*
@@ -641,6 +639,9 @@ int __handle_domain_irq(struct irq_domain *domain, unsigned int hwirq,
 		generic_handle_irq(irq);
 	}
 
+#ifdef CONFIG_MTK_SCHED_MONITOR
+	mt_trace_ISR_end(irq);
+#endif
 	irq_exit();
 	set_irq_regs(old_regs);
 	return ret;

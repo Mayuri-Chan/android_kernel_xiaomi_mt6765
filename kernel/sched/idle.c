@@ -23,9 +23,10 @@ extern char __cpuidle_text_start[], __cpuidle_text_end[];
  * sched_idle_set_state - Record idle state for the current CPU.
  * @idle_state: State to record.
  */
-void sched_idle_set_state(struct cpuidle_state *idle_state)
+void sched_idle_set_state(struct cpuidle_state *idle_state, int index)
 {
 	idle_set_state(this_rq(), idle_state);
+	idle_set_state_idx(this_rq(), index);
 }
 
 static int __read_mostly cpu_idle_force_poll;
@@ -224,12 +225,16 @@ static void cpu_idle_loop(void)
 			check_pgt_cache();
 			rmb();
 
+			local_irq_disable();
+
 			if (cpu_is_offline(cpu)) {
 				cpuhp_report_idle_dead();
+#ifdef CONFIG_MEDIATEK_SOLUTION
+				tick_set_cpu_plugoff_flag(1);
+#endif
 				arch_cpu_idle_dead();
 			}
 
-			local_irq_disable();
 			arch_cpu_idle_enter();
 
 			/*
