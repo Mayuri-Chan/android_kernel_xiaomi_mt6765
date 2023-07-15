@@ -671,17 +671,10 @@ fail:
 
 	throttle = perf_event_overflow(event, &data, &regs);
 out:
-	if (throttle) {
+	if (throttle)
 		perf_ibs_stop(event, 0);
-	} else {
-		period >>= 4;
-
-		if ((ibs_caps & IBS_CAPS_RDWROPCNT) &&
-		    (*config & IBS_OP_CNT_CTL))
-			period |= *config & IBS_OP_CUR_CNT_RAND;
-
-		perf_ibs_enable_event(perf_ibs, hwc, period);
-	}
+	else
+		perf_ibs_enable_event(perf_ibs, hwc, period >> 4);
 
 	perf_event_update_userpage(event);
 
