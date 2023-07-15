@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2016 MediaTek Inc.
+ * Copyright (C) 2019 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -17,12 +18,12 @@
 /* customize */
 #define DIFFERENCE_FULLOCV_ITH	200	/* mA */
 #define MTK_CHR_EXIST 1
-#define KEEP_100_PERCENT 1
+#define KEEP_100_PERCENT 2
 #define R_FG_VALUE	10				/* mOhm */
-#define EMBEDDED_SEL 0
+#define EMBEDDED_SEL 1
 #define PMIC_SHUTDOWN_CURRENT 20	/* 0.01 mA */
 #define FG_METER_RESISTANCE	75
-#define CAR_TUNE_VALUE	100 /*1.00 */
+#define CAR_TUNE_VALUE	101 /*1.00 */
 #define NO_BAT_TEMP_COMPENSATE 0
 /* NO_BAT_TEMP_COMPENSATE 1 = don't need bat_temper compensate, */
 /* but fg_meter_resistance still use for SWOCV */
@@ -33,9 +34,9 @@
 /* enable that uisoc = 1 and wait xmins then shutdown */
 #define SHUTDOWN_GAUGE1_XMINS 1
 /* define Xmins to shutdown*/
-#define SHUTDOWN_1_TIME	5
+#define SHUTDOWN_1_TIME	2
 
-#define SHUTDOWN_GAUGE1_VBAT_EN 1
+#define SHUTDOWN_GAUGE1_VBAT_EN 0
 #define SHUTDOWN_GAUGE1_VBAT 34000
 
 #define SHUTDOWN_GAUGE0_VOLTAGE 34000
@@ -84,7 +85,7 @@
 #define DISCHARGE_TRACKING_TIME 10
 #define CHARGE_TRACKING_TIME 60
 #define DIFFERENCE_FULLOCV_VTH	1000	/* 0.1mV */
-#define CHARGE_PSEUDO_FULL_LEVEL 8000
+#define CHARGE_PSEUDO_FULL_LEVEL 9000
 #define FULL_TRACKING_BAT_INT2_MULTIPLY 6
 
 /* pre tracking */
@@ -100,7 +101,7 @@
 #define CALI_CAR_TUNE_AVG_NUM	60
 
 /* Aging Compensation 1*/
-#define AGING_FACTOR_MIN 90
+#define AGING_FACTOR_MIN 75
 #define AGING_FACTOR_DIFF 10
 #define DIFFERENCE_VOLTAGE_UPDATE 50
 #define AGING_ONE_EN 1
@@ -154,8 +155,8 @@
 
 /* fgc & fgv threshold */
 #define DIFFERENCE_FGC_FGV_TH1 300
-#define DIFFERENCE_FGC_FGV_TH2 500
-#define DIFFERENCE_FGC_FGV_TH3 300
+#define DIFFERENCE_FGC_FGV_TH2 400
+#define DIFFERENCE_FGC_FGV_TH3 200
 #define DIFFERENCE_FGC_FGV_TH_SOC1 7000
 #define DIFFERENCE_FGC_FGV_TH_SOC2 3000
 #define NAFG_TIME_SETTING 10
@@ -172,8 +173,8 @@
 #define DIFF_IAVG_TH 3000
 
 /* ZCV INTR */
-#define ZCV_SUSPEND_TIME 29
-#define SLEEP_CURRENT_AVG 200 /*0.1mA*/
+#define ZCV_SUSPEND_TIME 6
+#define SLEEP_CURRENT_AVG 100 /*0.1mA*/
 #define ZCV_CAR_GAP_PERCENTAGE 5
 
 /* Additional battery table */
@@ -186,7 +187,7 @@
 
 #define PSEUDO1_SEL	2
 
-#define FG_TRACKING_CURRENT	30000	/* not implement */
+#define FG_TRACKING_CURRENT	15000	/* not implement */
 #define FG_TRACKING_CURRENT_IBOOT_EN	0	/* not implement */
 #define UI_FAST_TRACKING_EN 0
 #define UI_FAST_TRACKING_GAP 300
@@ -195,7 +196,7 @@
 
 #define SHUTDOWN_CONDITION_LOW_BAT_VOLT
 #define LOW_TEMP_DISABLE_LOW_BAT_SHUTDOWN 1
-#define LOW_TEMP_THRESHOLD 5
+#define LOW_TEMP_THRESHOLD 10
 
 #define BATTERY_TMP_TO_DISABLE_GM30 -50
 #define BATTERY_TMP_TO_DISABLE_NAFG -35
@@ -246,17 +247,17 @@
 /* UI_LOW_LIMIT_VTH0=36000 means 3.6v */
 #define UI_LOW_LIMIT_EN 1
 
-#define UI_LOW_LIMIT_SOC0 200
-#define UI_LOW_LIMIT_VTH0 34500
+#define UI_LOW_LIMIT_SOC0 400
+#define UI_LOW_LIMIT_VTH0 35500
 
-#define UI_LOW_LIMIT_SOC1 200
-#define UI_LOW_LIMIT_VTH1 34500
+#define UI_LOW_LIMIT_SOC1 400
+#define UI_LOW_LIMIT_VTH1 35500
 
-#define UI_LOW_LIMIT_SOC2 200
-#define UI_LOW_LIMIT_VTH2 34500
+#define UI_LOW_LIMIT_SOC2 300
+#define UI_LOW_LIMIT_VTH2 35000
 
-#define UI_LOW_LIMIT_SOC3 200
-#define UI_LOW_LIMIT_VTH3 34500
+#define UI_LOW_LIMIT_SOC3 300
+#define UI_LOW_LIMIT_VTH3 35000
 
 #define UI_LOW_LIMIT_SOC4 200
 #define UI_LOW_LIMIT_VTH4 34500
