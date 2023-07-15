@@ -1107,6 +1107,7 @@ int stm_source_register_device(struct device *parent,
 
 err:
 	put_device(&src->dev);
+	kfree(src);
 
 	return err;
 }
