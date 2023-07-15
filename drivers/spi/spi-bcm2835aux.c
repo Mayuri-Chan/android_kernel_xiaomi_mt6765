@@ -178,14 +178,19 @@ static void bcm2835aux_spi_reset_hw(struct bcm2835aux_spi *bs)
 		      BCM2835_AUX_SPI_CNTL0_CLEARFIFO);
 }
 
-static void bcm2835aux_spi_transfer_helper(struct bcm2835aux_spi *bs)
+static irqreturn_t bcm2835aux_spi_interrupt(int irq, void *dev_id)
 {
-	u32 stat = bcm2835aux_rd(bs, BCM2835_AUX_SPI_STAT);
+	struct spi_master *master = dev_id;
+	struct bcm2835aux_spi *bs = spi_master_get_devdata(master);
+	irqreturn_t ret = IRQ_NONE;
 
 	/* check if we have data to read */
-	for (; bs->rx_len && (stat & BCM2835_AUX_SPI_STAT_RX_LVL);
-	     stat = bcm2835aux_rd(bs, BCM2835_AUX_SPI_STAT))
+	while (bs->rx_len &&
+	       (!(bcm2835aux_rd(bs, BCM2835_AUX_SPI_STAT) &
+		  BCM2835_AUX_SPI_STAT_RX_EMPTY))) {
 		bcm2835aux_rd_fifo(bs);
+		ret = IRQ_HANDLED;
+	}
 
 	/* check if we have data to write */
 	while (bs->tx_len &&
@@ -193,21 +198,16 @@ static void bcm2835aux_spi_transfer_helper(struct bcm2835aux_spi *bs)
 	       (!(bcm2835aux_rd(bs, BCM2835_AUX_SPI_STAT) &
 		  BCM2835_AUX_SPI_STAT_TX_FULL))) {
 		bcm2835aux_wr_fifo(bs);
+		ret = IRQ_HANDLED;
 	}
-}
 
-static irqreturn_t bcm2835aux_spi_interrupt(int irq, void *dev_id)
-{
-	struct spi_master *master = dev_id;
-	struct bcm2835aux_spi *bs = spi_master_get_devdata(master);
-
-	/* IRQ may be shared, so return if our interrupts are disabled */
-	if (!(bcm2835aux_rd(bs, BCM2835_AUX_SPI_CNTL1) &
-	      (BCM2835_AUX_SPI_CNTL1_TXEMPTY | BCM2835_AUX_SPI_CNTL1_IDLE)))
-		return IRQ_NONE;
-
-	/* do common fifo handling */
-	bcm2835aux_spi_transfer_helper(bs);
+	/* and check if we have reached "done" */
+	while (bs->rx_len &&
+	       (!(bcm2835aux_rd(bs, BCM2835_AUX_SPI_STAT) &
+		  BCM2835_AUX_SPI_STAT_BUSY))) {
+		bcm2835aux_rd_fifo(bs);
+		ret = IRQ_HANDLED;
+	}
 
 	if (!bs->tx_len) {
 		/* disable tx fifo empty interrupt */
@@ -221,7 +221,8 @@ static irqreturn_t bcm2835aux_spi_interrupt(int irq, void *dev_id)
 		complete(&master->xfer_completion);
 	}
 
-	return IRQ_HANDLED;
+	/* and return */
+	return ret;
 }
 
 static int __bcm2835aux_spi_transfer_one_irq(struct spi_master *master,
@@ -267,6 +268,7 @@ static int bcm2835aux_spi_transfer_one_poll(struct spi_master *master,
 {
 	struct bcm2835aux_spi *bs = spi_master_get_devdata(master);
 	unsigned long timeout;
+	u32 stat;
 
 	/* configure spi */
 	bcm2835aux_wr(bs, BCM2835_AUX_SPI_CNTL1, bs->cntl[1]);
@@ -277,9 +279,24 @@ static int bcm2835aux_spi_transfer_one_poll(struct spi_master *master,
 
 	/* loop until finished the transfer */
 	while (bs->rx_len) {
+		/* read status */
+		stat = bcm2835aux_rd(bs, BCM2835_AUX_SPI_STAT);
 
-		/* do common fifo handling */
-		bcm2835aux_spi_transfer_helper(bs);
+		/* fill in tx fifo with remaining data */
+		if ((bs->tx_len) && (!(stat & BCM2835_AUX_SPI_STAT_TX_FULL))) {
+			bcm2835aux_wr_fifo(bs);
+			continue;
+		}
+
+		/* read data from fifo for both cases */
+		if (!(stat & BCM2835_AUX_SPI_STAT_RX_EMPTY)) {
+			bcm2835aux_rd_fifo(bs);
+			continue;
+		}
+		if (!(stat & BCM2835_AUX_SPI_STAT_BUSY)) {
+			bcm2835aux_rd_fifo(bs);
+			continue;
+		}
 
 		/* there is still data pending to read check the timeout */
 		if (bs->rx_len && time_after(jiffies, timeout)) {
