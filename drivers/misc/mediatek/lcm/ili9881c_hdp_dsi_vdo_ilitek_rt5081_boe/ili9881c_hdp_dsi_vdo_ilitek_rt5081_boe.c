@@ -119,13 +119,23 @@ static struct LCM_setting_table init_setting_cmd[] = {
 };
 
 static struct LCM_setting_table init_setting_vdo[] = {
-		/* CMD_Page 0 */
+		/* CMD_Page 4 */
 	{ 0xFF, 0x03, {0x98, 0x81, 0x00} },
 	{ 0x11, 0x01, {0x00} },
 	{REGFLAG_DELAY, 120, {} },
 	{ 0xFF, 0x03, {0x98, 0x81, 0x04} },
+	{ 0x0B, 0x01, {0x90} },
+	{ 0x0E, 0x01, {0x0B} },
+	{ 0x35, 0x01, {0x17} },
+	{ 0x3A, 0x01, {0x92} },
+	{ 0xB5, 0x01, {0x27} },
+	{ 0x3B, 0x01, {0x98} },
+	{ 0x31, 0x01, {0x75} },
+	{ 0x30, 0x01, {0x03} },
 	{ 0x38, 0x01, {0x01} },
 	{ 0x39, 0x01, {0x00} },
+	{ 0xFF, 0x03, {0x98, 0x81, 0x05} },
+	{ 0x85, 0x01, {0x40} },
 	{ 0xFF, 0x03, {0x98, 0x81, 0x02} },
 	{ 0x06, 0x01, {0x30} },
 	{ 0x07, 0x01, {0x07} },
@@ -259,19 +269,21 @@ static void lcm_get_params(struct LCM_PARAMS *params)
 	//params->dsi.vertical_frontporch_for_low_power = 540;/*disable dynamic frame rate*/
 	params->dsi.vertical_active_line = FRAME_HEIGHT;
 
-	params->dsi.horizontal_sync_active = 20;
-	params->dsi.horizontal_backporch = 40;
-	params->dsi.horizontal_frontporch = 56;
+	params->dsi.horizontal_sync_active = 22;
+	params->dsi.horizontal_backporch = 80;
+	params->dsi.horizontal_frontporch = 100;
 	params->dsi.horizontal_active_pixel = FRAME_WIDTH;
+	params->dsi.ssc_range = 4;
+	params->dsi.ssc_disable = 0;
 	/*params->dsi.ssc_disable = 1;*/
 #ifndef CONFIG_FPGA_EARLY_PORTING
 #if (LCM_DSI_CMD_MODE)
 	params->dsi.PLL_CLOCK = 220;	/* this value must be in MTK suggested table */
 #else
-	params->dsi.PLL_CLOCK = 245;	/* this value must be in MTK suggested table */
+	params->dsi.PLL_CLOCK = 266;	/* this value must be in MTK suggested table */
 #endif
 	params->dsi.PLL_CK_CMD = 220;
-	params->dsi.PLL_CK_VDO = 245;
+	params->dsi.PLL_CK_VDO = 266;
 #else
 	params->dsi.pll_div1 = 0;
 	params->dsi.pll_div2 = 0;
@@ -292,7 +304,7 @@ static void lcm_get_params(struct LCM_PARAMS *params)
 	params->corner_pattern_height = 32;
 #endif
 
-	params->vbias_level = 5500000;
+	params->vbias_level = 6000000;
 
 }
 
@@ -351,7 +363,6 @@ static void lcm_resume_power(void)
 	MDELAY(15);
 }
 
-
 #if 0
 static int cabc_status = 0;
 static void setCabcStatus(void)
@@ -397,9 +408,6 @@ static void lcm_init(void)
 	}
 
 #endif
-
-
-
 }
 
 static void lcm_suspend(void)
@@ -413,32 +421,6 @@ static void lcm_resume(void)
 {
 	/*pr_debug("lcm_resume\n");*/
 	lcm_init();
-}
-
-static unsigned int lcm_esd_recover(void)
-{
-#ifndef BUILD_LK
-	lcm_resume_power();
-	SET_RESET_PIN(1);
-	MDELAY(1);
-	SET_RESET_PIN(0);
-	MDELAY(1);
-	SET_RESET_PIN(1);
-	MDELAY(120);
-	if (lcm_dsi_mode == CMD_MODE) {
-		push_table(NULL, init_setting_cmd, sizeof(init_setting_cmd) / sizeof(struct LCM_setting_table), 1);
-		pr_debug("ili9881c----rt5081----lcm mode = cmd mode :%d----\n", lcm_dsi_mode);
-	} else {
-		push_table(NULL, init_setting_vdo, sizeof(init_setting_vdo) / sizeof(struct LCM_setting_table), 1);
-		pr_debug("ili9881c----rt5081----lcm mode = vdo mode :%d----\n", lcm_dsi_mode);
-	}
-	pr_debug("lcm_esd_recovery\n");
-	push_table(NULL, bl_level, sizeof(bl_level) / sizeof(struct LCM_setting_table), 1);
-	return FALSE;
-#else
-	return FALSE;
-#endif
-
 }
 
 #if 0
@@ -516,6 +498,26 @@ static unsigned int lcm_compare_id(void)
 }
 
 
+static void lcm_setbacklight_cmdq(void *handle, unsigned int level)
+{
+
+	pr_debug("%s,boe_ili9881c backlight: level = %d\n", __func__, level);
+
+	/*if ( (level>0) && (level<8) )
+		level = 8;
+	pr_debug("%s,boe_ili9881c backlight: level = %d\n", __func__, level);
+
+	// set 12bit
+	bl_level[1].para_list[0] = (level&0xF00)>>8;
+	bl_level[1].para_list[1] = (level&0xFF);*/
+
+	//for 12bit switch to 8bit
+	bl_level[1].para_list[0] = (level&0xF0)>>4;
+	bl_level[1].para_list[1] = (level&0xF)<<4;
+
+	push_table(handle, bl_level, sizeof(bl_level) / sizeof(struct LCM_setting_table), 1);
+}
+
 /* return TRUE: need recovery */
 /* return FALSE: No need recovery */
 static unsigned int lcm_esd_check(void)
@@ -530,10 +532,36 @@ static unsigned int lcm_esd_check(void)
 	read_reg_v2(0x0A, buffer, 1);
 
 	if (buffer[0] != 0x9C) {
-		pr_debug("[LCM ERROR] [0x53]=0x%02x\n", buffer[0]);
+		pr_debug("[LCM ERROR] [0x0A]=0x%02x\n", buffer[0]);
 		return TRUE;
 	}
-	pr_debug("[LCM NORMAL] [0x53]=0x%02x\n", buffer[0]);
+	pr_debug("[LCM NORMAL] [0x0A]=0x%02x\n", buffer[0]);
+	return FALSE;
+#else
+	return FALSE;
+#endif
+
+}
+
+static unsigned int lcm_esd_recover(void)
+{
+#ifndef BUILD_LK
+	lcm_resume_power();
+	SET_RESET_PIN(1);
+	MDELAY(1);
+	SET_RESET_PIN(0);
+	MDELAY(1);
+	SET_RESET_PIN(1);
+	MDELAY(120);
+	if (lcm_dsi_mode == CMD_MODE) {
+		push_table(NULL, init_setting_cmd, sizeof(init_setting_cmd) / sizeof(struct LCM_setting_table), 1);
+		pr_debug("ili9881c----rt5081----lcm mode = cmd mode :%d----\n", lcm_dsi_mode);
+	} else {
+		push_table(NULL, init_setting_vdo, sizeof(init_setting_vdo) / sizeof(struct LCM_setting_table), 1);
+		pr_debug("ili9881c----rt5081----lcm mode = vdo mode :%d----\n", lcm_dsi_mode);
+	}
+	pr_debug("lcm_esd_recovery\n");
+	push_table(NULL, bl_level, sizeof(bl_level) / sizeof(struct LCM_setting_table), 1);
 	return FALSE;
 #else
 	return FALSE;
@@ -546,75 +574,49 @@ static unsigned int lcm_ata_check(unsigned char *buffer)
 #ifndef BUILD_LK
 	unsigned int ret = 0;
 	unsigned int x0 = FRAME_WIDTH / 4;
+	unsigned int x1 = FRAME_WIDTH * 3 / 4;
 
-	unsigned char x0_MSB = (x0 & 0xFF);
+	unsigned char x0_MSB = ((x0 >> 8) & 0xFF);
+	unsigned char x0_LSB = (x0 & 0xFF);
+	unsigned char x1_MSB = ((x1 >> 8) & 0xFF);
+	unsigned char x1_LSB = (x1 & 0xFF);
 
-	unsigned int data_array[2];
-	unsigned char read_buf[2];
-	unsigned int num1 = 0, num2 = 0;
+	unsigned int data_array[3];
+	unsigned char read_buf[4];
 
-	struct LCM_setting_table switch_table_page1[] = {
-		{ 0xFF, 0x03, {0x98, 0x81, 0x01} }
-	};
+	pr_debug("ATA check size = 0x%x,0x%x,0x%x,0x%x\n", x0_MSB, x0_LSB, x1_MSB, x1_LSB);
+	data_array[0] = 0x0005390A;	/* HS packet */
+	data_array[1] = (x1_MSB << 24) | (x0_LSB << 16) | (x0_MSB << 8) | 0x2a;
+	data_array[2] = (x1_LSB);
+	dsi_set_cmdq(data_array, 3, 1);
 
-	struct LCM_setting_table switch_table_page0[] = {
-		{ 0xFF, 0x03, {0x98, 0x81, 0x00} }
-	};
-
-
-	MDELAY(20);
-
-	num1 = sizeof(switch_table_page1) / sizeof(struct LCM_setting_table);
-
-	push_table(NULL, switch_table_page1, num1, 1);
-	pr_debug("before read ATA check x0_MSB = 0x%x\n", x0_MSB);
-	pr_debug("before read ATA check read buff = 0x%x\n", read_buf[0]);
-
-	data_array[0] = 0x0002390A;	/* HS packet */
-	data_array[1] = x0_MSB << 8 | 0x55;
-	//data_array[2] = (x0_MSB);
-	dsi_set_cmdq(data_array, 2, 1);
-
-	data_array[0] = 0x00013700;
+	data_array[0] = 0x00043700;	/* read id return two byte,version and id */
 	dsi_set_cmdq(data_array, 1, 1);
 
-	read_reg_v2(0x55, read_buf, 1);
+	read_reg_v2(0x2A, read_buf, 4);
 
-	pr_debug("after read ATA check size = 0x%x\n", read_buf[0]);
-
-	num2 = sizeof(switch_table_page0) / sizeof(struct LCM_setting_table);
-
-	push_table(NULL, switch_table_page0, num2, 1);
-
-	if (read_buf[0] == x0_MSB)
+	if ((read_buf[0] == x0_MSB) && (read_buf[1] == x0_LSB)
+	    && (read_buf[2] == x1_MSB) && (read_buf[3] == x1_LSB))
 		ret = 1;
 	else
 		ret = 0;
 
+	x0 = 0;
+	x1 = FRAME_WIDTH - 1;
+
+	x0_MSB = ((x0 >> 8) & 0xFF);
+	x0_LSB = (x0 & 0xFF);
+	x1_MSB = ((x1 >> 8) & 0xFF);
+	x1_LSB = (x1 & 0xFF);
+
+	data_array[0] = 0x0005390A;	/* HS packet */
+	data_array[1] = (x1_MSB << 24) | (x0_LSB << 16) | (x0_MSB << 8) | 0x2a;
+	data_array[2] = (x1_LSB);
+	dsi_set_cmdq(data_array, 3, 1);
 	return ret;
 #else
 	return 0;
 #endif
-}
-
-static void lcm_setbacklight_cmdq(void *handle, unsigned int level)
-{
-
-	pr_debug("%s,egg_ili9881c backlight: level = %d\n", __func__, level);
-
-	/*if ( (level>0) && (level<8) )
-		level = 8;
-	pr_debug("%s,egg_ili9881c backlight: level = %d\n", __func__, level);
-
-	// set 12bit
-	bl_level[1].para_list[0] = (level&0xF00)>>8;
-	bl_level[1].para_list[1] = (level&0xFF);*/
-
-	//for 12bit switch to 8bit
-	bl_level[1].para_list[0] = (level&0xF0)>>4;
-	bl_level[1].para_list[1] = (level&0xF)<<4;
-
-	push_table(handle, bl_level, sizeof(bl_level) / sizeof(struct LCM_setting_table), 1);
 }
 
 static void *lcm_switch_mode(int mode)
@@ -680,7 +682,6 @@ static void lcm_validate_roi(int *x, int *y, int *width, int *height)
 }
 #endif
 
-
 #if 0
 static struct LCM_setting_table cabc_level[] = {
 	{ 0xFF, 0x03, {0x98, 0x81, 0x00} },
@@ -691,13 +692,13 @@ static struct LCM_setting_table cabc_level[] = {
 static void lcm_set_cabc_cmdq(void *handle, unsigned int enable)
 {
 	if(enable == 1 || enable == 0 || enable == 3 || enable == 2){
-		pr_debug("in EBBG panel driver , cabc set to vaule %d\n", enable);
+		pr_debug("in BOE panel driver , cabc set to vaule %d\n", enable);
 		cabc_level[1].para_list[0] = enable;
 		push_table(handle, cabc_level, sizeof(cabc_level) / sizeof(struct LCM_setting_table), 1);
 		cabc_status = enable;
 		setCabcStatus();
 	}else{
-		pr_debug("in EBBG panel driver , cabc set to invalid vaule %d\n", enable);
+		pr_debug("in BOE panel driver , cabc set to invalid vaule %d\n", enable);
 	}
 }
 
@@ -705,10 +706,9 @@ static void lcm_set_cabc_cmdq(void *handle, unsigned int enable)
 static void lcm_get_cabc_status(int *status)
 {
 	*status = cabc_status;
-	pr_debug("in EBBG panel driver , cabc get to %d\n", cabc_status);
+	pr_debug("in BOE panel driver , cabc get to %d\n", cabc_status);
 }
 #endif
-
 
 #if 0
 static void lcm_get_cabc_status(int *status)
@@ -723,19 +723,19 @@ static void lcm_get_cabc_status(int *status)
 
 	pr_debug("read cabc %x,%x\n",buffer[0],buffer[1]);
 
-	pr_debug("in EBBG panel driver , cabc get to %d\n", buffer[0]);
+	pr_debug("in BOE panel driver , cabc get to %d\n", buffer[0]);
 	*status = buffer[0];
 }
 #endif
 
 
 #if (LCM_DSI_CMD_MODE)
-LCM_DRIVER ili9881c_hdp_dsi_cmd_ilitek_rt5081_lcm_drv_ebbg = {
-	.name = "ili9881c_hdp_dsi_cmd_ilitek_rt5081_drv_ebbg",
+LCM_DRIVER ili9881c_hdp_dsi_cmd_ilitek_rt5081_lcm_drv_boe = {
+	.name = "ili9881c_hdp_dsi_cmd_ilitek_rt5081_drv_boe",
 #else
 
-struct LCM_DRIVER ili9881c_hdp_dsi_vdo_ilitek_rt5081_lcm_drv_ebbg = {
-	.name = "ili9881c_hdp_dsi_vdo_ilitek_rt5081_drv_ebbg",
+struct LCM_DRIVER ili9881c_hdp_dsi_vdo_ilitek_rt5081_lcm_drv_boe = {
+	.name = "ili9881c_hdp_dsi_vdo_ilitek_rt5081_drv_boe",
 #endif
 	.set_util_funcs = lcm_set_util_funcs,
 	.get_params = lcm_get_params,
