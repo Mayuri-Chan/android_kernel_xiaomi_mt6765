@@ -1,15 +1,15 @@
 /*
- * menu.c - the menu idle governor
+ * Copyright (C) 2017 MediaTek Inc.
  *
- * Copyright (C) 2006-2007 Adam Belay <abelay@novell.com>
- * Copyright (C) 2009 Intel Corporation
- * Author:
- *        Arjan van de Ven <arjan@linux.intel.com>
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
  *
- * This code is licenced under the GPL version 2 as described
- * in the COPYING file that acompanies the Linux Kernel.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See http://www.gnu.org/licenses/gpl-2.0.html for more details.
  */
-
 #include <linux/kernel.h>
 #include <linux/cpuidle.h>
 #include <linux/pm_qos.h>
@@ -17,10 +17,95 @@
 #include <linux/ktime.h>
 #include <linux/hrtimer.h>
 #include <linux/tick.h>
-#include <linux/sched.h>
 #include <linux/sched/loadavg.h>
 #include <linux/math64.h>
 #include <linux/module.h>
+
+#include <linux/fb.h>
+#include <linux/notifier.h>
+
+#include "mtk_menu.h"
+
+static bool screen_on;
+static DEFINE_SPINLOCK(mtk_menu_spin_lock);
+
+bool __attribute__((weak)) system_idle_hint_result(void)
+{
+	return false;
+}
+
+bool __attribute__((weak)) is_all_cpu_idle_criteria(void)
+{
+	return false;
+}
+
+void __attribute__((weak)) mtk_idle_dump_cnt_in_interval(void)
+{
+}
+
+void __attribute__((weak)) mcdi_heart_beat_log_dump(void)
+{
+}
+
+void __attribute__((weak)) mtk_cpuidle_framework_init(void)
+{
+}
+
+static int mtk_menu_fb_notifier_callback(struct notifier_block *self,
+				unsigned long event, void *data)
+{
+	struct fb_event *evdata = data;
+	int blank;
+	unsigned long flags = 0;
+
+	if (event != FB_EVENT_BLANK)
+		return 0;
+
+	blank = *(int *)evdata->data;
+
+	switch (blank) {
+	case FB_BLANK_UNBLANK:
+
+		spin_lock_irqsave(&mtk_menu_spin_lock, flags);
+
+		screen_on = true;
+
+		spin_unlock_irqrestore(&mtk_menu_spin_lock, flags);
+
+		break;
+	case FB_BLANK_POWERDOWN:
+
+		spin_lock_irqsave(&mtk_menu_spin_lock, flags);
+
+		screen_on = false;
+
+		spin_unlock_irqrestore(&mtk_menu_spin_lock, flags);
+
+		break;
+	default:
+		break;
+	}
+
+	return 0;
+}
+
+static struct notifier_block mtk_menu_fb_notifier = {
+		.notifier_call = mtk_menu_fb_notifier_callback,
+};
+
+static bool is_screen_on(void)
+{
+	bool result = false;
+	unsigned long flags = 0;
+
+	spin_lock_irqsave(&mtk_menu_spin_lock, flags);
+
+	result = screen_on;
+
+	spin_unlock_irqrestore(&mtk_menu_spin_lock, flags);
+
+	return result;
+}
 
 /*
  * Please note when changing the tuning values:
@@ -38,6 +123,9 @@
 #define DECAY 8
 #define MAX_INTERESTING 50000
 
+#define USE_CORRELATION_FACTOR
+#define USE_TYPICAL_INTERVAL
+#define USE_INTERACTIVITY_REQ
 
 /*
  * Concepts and ideas behind the menu governor
@@ -131,12 +219,17 @@ struct menu_device {
 	int		interval_ptr;
 };
 
+
+#define LOAD_INT(x) ((x) >> FSHIFT)
+#define LOAD_FRAC(x) LOAD_INT(((x) & (FIXED_1-1)) * 100)
+
 static inline int get_loadavg(unsigned long load)
 {
 	return LOAD_INT(load) * 10 + LOAD_FRAC(load) / 10;
 }
 
-static inline int which_bucket(unsigned int duration, unsigned long nr_iowaiters)
+static inline int which_bucket(unsigned int duration,
+						unsigned long nr_iowaiters)
 {
 	int bucket = 0;
 
@@ -147,7 +240,7 @@ static inline int which_bucket(unsigned int duration, unsigned long nr_iowaiters
 	 * E(duration)|iowait
 	 */
 	if (nr_iowaiters)
-		bucket = BUCKETS/2;
+		bucket = BUCKETS / 2;
 
 	if (duration < 10)
 		return bucket;
@@ -169,7 +262,8 @@ static inline int which_bucket(unsigned int duration, unsigned long nr_iowaiters
  * to be, the higher this multiplier, and thus the higher
  * the barrier to go to an expensive C state.
  */
-static inline int performance_multiplier(unsigned long nr_iowaiters, unsigned long load)
+static inline int performance_multiplier(unsigned long nr_iowaiters,
+						unsigned long load)
 {
 	int mult = 1;
 
@@ -192,6 +286,7 @@ static DEFINE_PER_CPU(struct menu_device, menu_devices);
 
 static void menu_update(struct cpuidle_driver *drv, struct cpuidle_device *dev);
 
+#ifdef USE_TYPICAL_INTERVAL
 /*
  * Try detecting repeating patterns by keeping track of the last 8
  * intervals, and checking if the standard deviation of that set
@@ -214,6 +309,7 @@ again:
 	divisor = 0;
 	for (i = 0; i < INTERVALS; i++) {
 		unsigned int value = data->intervals[i];
+
 		if (value <= thresh) {
 			sum += value;
 			divisor++;
@@ -230,8 +326,10 @@ again:
 	variance = 0;
 	for (i = 0; i < INTERVALS; i++) {
 		unsigned int value = data->intervals[i];
+
 		if (value <= thresh) {
 			int64_t diff = (int64_t)value - avg;
+
 			variance += diff * diff;
 		}
 	}
@@ -252,9 +350,10 @@ again:
 	 *
 	 * Use this result only if there is no timer to wake us up sooner.
 	 */
-	if (likely(variance <= U64_MAX/36)) {
-		if ((((u64)avg*avg > variance*36) && (divisor * 4 >= INTERVALS * 3))
-							|| variance <= 400) {
+	if (likely(variance <= U64_MAX / 36)) {
+		if ((((u64)avg * avg > variance * 36)
+				&& (divisor * 4 >= INTERVALS * 3))
+				|| variance <= 400) {
 			return avg;
 		}
 	}
@@ -274,6 +373,7 @@ again:
 	thresh = max - 1;
 	goto again;
 }
+#endif
 
 /**
  * menu_select - selects the next idle state to enter
@@ -285,8 +385,12 @@ static int menu_select(struct cpuidle_driver *drv, struct cpuidle_device *dev)
 	struct menu_device *data = this_cpu_ptr(&menu_devices);
 	int latency_req = pm_qos_request(PM_QOS_CPU_DMA_LATENCY);
 	int i;
+#ifdef USE_INTERACTIVITY_REQ
 	unsigned int interactivity_req;
+#endif
+#ifdef USE_TYPICAL_INTERVAL
 	unsigned int expected_interval;
+#endif
 	unsigned long nr_iowaiters, cpu_load;
 
 	if (data->needs_update) {
@@ -304,28 +408,62 @@ static int menu_select(struct cpuidle_driver *drv, struct cpuidle_device *dev)
 	get_iowait_load(&nr_iowaiters, &cpu_load);
 	data->bucket = which_bucket(data->next_timer_us, nr_iowaiters);
 
+#ifdef USE_CORRELATION_FACTOR
 	/*
 	 * Force the result of multiplication to be 64 bits even if both
 	 * operands are 32 bits.
 	 * Make sure to round up for half microseconds.
 	 */
-	data->predicted_us = DIV_ROUND_CLOSEST_ULL((uint64_t)data->next_timer_us *
+	data->predicted_us =
+		DIV_ROUND_CLOSEST_ULL((uint64_t)data->next_timer_us *
 					 data->correction_factor[data->bucket],
 					 RESOLUTION * DECAY);
 
-	expected_interval = get_typical_interval(data);
-	expected_interval = min(expected_interval, data->next_timer_us);
+	/* do NOT use correlation_factor if screen OFF */
+	if (!is_screen_on() && system_idle_hint_result())
+		data->predicted_us = data->next_timer_us;
+
+#else
+	data->predicted_us = data->next_timer_us;
+#endif
+
+#ifdef USE_TYPICAL_INTERVAL
+	if (!is_all_cpu_idle_criteria()) {
+		expected_interval = get_typical_interval(data);
+		expected_interval = min(expected_interval, data->next_timer_us);
+		/*
+		 * Use the lowest expected idle interval to pick the idle state.
+		 */
+		data->predicted_us = min(data->predicted_us, expected_interval);
+	}
+#endif
+
+#ifdef USE_INTERACTIVITY_REQ
+	/*
+	 * Performance multiplier defines a minimum predicted idle
+	 * duration / latency ratio. Adjust the latency limit if
+	 * necessary.
+	 */
+	interactivity_req = data->predicted_us
+			/ performance_multiplier(nr_iowaiters, cpu_load);
+
+	if (latency_req > interactivity_req)
+		latency_req = interactivity_req;
+#endif
 
 	if (CPUIDLE_DRIVER_STATE_START > 0) {
-		struct cpuidle_state *s = &drv->states[CPUIDLE_DRIVER_STATE_START];
+		struct cpuidle_state *s;
 		unsigned int polling_threshold;
 
+		s = &drv->states[CPUIDLE_DRIVER_STATE_START];
 		/*
 		 * We want to default to C1 (hlt), not to busy polling
 		 * unless the timer is happening really really soon, or
 		 * C1's exit latency exceeds the user configured limit.
 		 */
-		polling_threshold = max_t(unsigned int, 20, s->target_residency);
+		polling_threshold =
+			max_t(unsigned int, 20, s->target_residency);
+
 		if (data->next_timer_us > polling_threshold &&
 		    latency_req > s->exit_latency && !s->disabled &&
 		    !dev->states_usage[CPUIDLE_DRIVER_STATE_START].disable)
@@ -335,19 +473,6 @@ static int menu_select(struct cpuidle_driver *drv, struct cpuidle_device *dev)
 	} else {
 		data->last_state_idx = CPUIDLE_DRIVER_STATE_START;
 	}
-
-	/*
-	 * Use the lowest expected idle interval to pick the idle state.
-	 */
-	data->predicted_us = min(data->predicted_us, expected_interval);
-
-	/*
-	 * Use the performance multiplier and the user-configurable
-	 * latency_req to determine the maximum exit latency.
-	 */
-	interactivity_req = data->predicted_us / performance_multiplier(nr_iowaiters, cpu_load);
-	if (latency_req > interactivity_req)
-		latency_req = interactivity_req;
 
 	/*
 	 * Find the idle state with the lowest power while satisfying
@@ -384,6 +509,9 @@ static void menu_reflect(struct cpuidle_device *dev, int index)
 
 	data->last_state_idx = index;
 	data->needs_update = 1;
+
+	mtk_idle_dump_cnt_in_interval();
+	mcdi_heart_beat_log_dump();
 }
 
 /**
@@ -474,15 +602,29 @@ static int menu_enable_device(struct cpuidle_driver *drv,
 	 * if the correction factor is 0 (eg first time init or cpu hotplug
 	 * etc), we actually want to start out with a unity factor.
 	 */
-	for(i = 0; i < BUCKETS; i++)
+	for (i = 0; i < BUCKETS; i++)
 		data->correction_factor[i] = RESOLUTION * DECAY;
 
 	return 0;
 }
 
+unsigned int get_menu_predict_us(void)
+{
+	struct menu_device *data = this_cpu_ptr(&menu_devices);
+
+	return data->predicted_us;
+}
+
+unsigned int get_menu_next_timer_us(void)
+{
+	struct menu_device *data = this_cpu_ptr(&menu_devices);
+
+	return data->next_timer_us;
+}
+
 static struct cpuidle_governor menu_governor = {
-	.name =		"menu",
-	.rating =	20,
+	.name =		"mtk_menu",
+	.rating =	100,
 	.enable =	menu_enable_device,
 	.select =	menu_select,
 	.reflect =	menu_reflect,
@@ -494,6 +636,24 @@ static struct cpuidle_governor menu_governor = {
  */
 static int __init init_menu(void)
 {
+	unsigned long flags = 0;
+	int r;
+
+	/* Register FB notifier */
+	r = fb_register_client(&mtk_menu_fb_notifier);
+	if (r) {
+		pr_info("FAILED TO REGISTER FB CLIENT (%d)\n", r);
+		return r;
+	}
+
+	spin_lock_irqsave(&mtk_menu_spin_lock, flags);
+
+	screen_on = true;
+
+	spin_unlock_irqrestore(&mtk_menu_spin_lock, flags);
+
+	mtk_cpuidle_framework_init();
+
 	return cpuidle_register_governor(&menu_governor);
 }
 
