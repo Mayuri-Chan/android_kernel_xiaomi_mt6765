@@ -1822,7 +1822,8 @@ static int snd_seq_ioctl_get_client_pool(struct snd_seq_client *client,
 	if (cptr->type == USER_CLIENT) {
 		info->input_pool = cptr->data.user.fifo_pool_size;
 		info->input_free = info->input_pool;
-		info->input_free = snd_seq_fifo_unused_cells(cptr->data.user.fifo);
+		if (cptr->data.user.fifo)
+			info->input_free = snd_seq_unused_cells(cptr->data.user.fifo->pool);
 	} else {
 		info->input_pool = 0;
 		info->input_free = 0;
