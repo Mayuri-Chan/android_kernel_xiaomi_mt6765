@@ -23,7 +23,6 @@
 #define DEV_NAME		"teei_fp"
 
 extern wait_queue_head_t __fp_open_wq;
-extern wait_queue_head_t __wait_spi_wq;
 
 int send_fp_command(void *buffer, unsigned long size);
 #endif /* end of TEEI_FUNC_H */
