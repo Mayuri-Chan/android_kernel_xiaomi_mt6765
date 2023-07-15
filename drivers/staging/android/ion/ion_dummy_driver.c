@@ -84,7 +84,7 @@ static int __init ion_dummy_init(void)
 		dummy_heaps[ION_HEAP_TYPE_CARVEOUT].base =
 						virt_to_phys(carveout_ptr);
 	else
-		pr_err("ion_dummy: Could not allocate carveout\n");
+		pr_notice("ion_dummy: Could not allocate carveout\n");
 
 	/* Allocate a dummy chunk heap */
 	chunk_ptr = alloc_pages_exact(
@@ -93,7 +93,7 @@ static int __init ion_dummy_init(void)
 	if (chunk_ptr)
 		dummy_heaps[ION_HEAP_TYPE_CHUNK].base = virt_to_phys(chunk_ptr);
 	else
-		pr_err("ion_dummy: Could not allocate chunk\n");
+		pr_notice("ion_dummy: Could not allocate chunk\n");
 
 	for (i = 0; i < dummy_ion_pdata.nr; i++) {
 		struct ion_platform_heap *heap_data = &dummy_ion_pdata.heaps[i];
