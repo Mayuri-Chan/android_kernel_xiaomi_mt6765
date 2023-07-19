@@ -1396,6 +1396,10 @@ void musb_start(struct musb *musb)
 		musb_writeb(regs, MUSB_POWER, val);
 	}
 
+	/* disable USB DCM */
+	musb_writel(musb->mregs, 0x220,
+		musb_readl(musb->mregs, 0x220) | 0x400);
+
 	if (musb->is_host)
 		musb->is_active = 0;
 	else
@@ -2124,8 +2128,7 @@ irqreturn_t musb_interrupt(struct musb *musb)
 				static DEFINE_RATELIMIT_STATE(rlmt, HZ, 2);
 				static int skip_cnt;
 
-				if (musb_host_db_enable &&
-					host_tx_refcnt_dec(ep_num) < 0) {
+				if (host_tx_refcnt_dec(ep_num) < 0) {
 					int ref_cnt;
 
 					musb_host_db_workaround_cnt++;

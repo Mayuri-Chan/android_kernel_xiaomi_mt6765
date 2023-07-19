@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2017 MediaTek Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -120,6 +121,15 @@ static struct musb_fifo_cfg fifo_cfg_host[] = {
 		.maxpacket = 64,  .mode = MUSB_BUF_SINGLE},
 };
 
+/*2020.04.14 longcheer xugui set usb_type start*/
+#if defined(CONFIG_TCPC_CLASS)
+u32 typec_on = 1;
+#else
+u32 typec_on = 0;
+#endif
+module_param(typec_on, int, 0644);
+/*2020.04.14 longcheer xugui set usb_type end*/
+
 u32 delay_time = 15;
 module_param(delay_time, int, 0644);
 u32 delay_time1 = 55;
@@ -163,10 +173,11 @@ static void _set_vbus(int is_on)
 #ifdef CONFIG_MTK_CHARGER
 #if CONFIG_MTK_GAUGE_VERSION == 30
 		charger_dev_enable_otg(primary_charger, true);
-		charger_dev_set_boost_current_limit(primary_charger, 1500000);
+    DBG(0, "lct _setvbus charger_dev_enable_otg\n");
+		charger_dev_set_boost_current_limit(primary_charger, 1200000);
 #else
 		set_chr_enable_otg(0x1);
-		set_chr_boost_current_limit(1500);
+		set_chr_boost_current_limit(1200);
 #endif
 #endif
 	} else if (!is_on && vbus_on) {
@@ -178,6 +189,7 @@ static void _set_vbus(int is_on)
 #ifdef CONFIG_MTK_CHARGER
 #if CONFIG_MTK_GAUGE_VERSION == 30
 		charger_dev_enable_otg(primary_charger, false);
+    DBG(0, "lct _setvbus charger_dev_disable_otg\n");
 #else
 		set_chr_enable_otg(0x0);
 #endif
@@ -722,6 +734,9 @@ static int otg_iddig_probe(struct platform_device *pdev)
 			iddig_eint_num, ret);
 		return ret;
 	}
+
+	//2020.02.18 longcheer xugui sleep wake up for otg
+	enable_irq_wake(iddig_eint_num);
 
 	return 0;
 }

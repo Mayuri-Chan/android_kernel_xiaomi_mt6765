@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2017 MediaTek Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -33,6 +34,21 @@
 #endif
 
 #include <mt-plat/mtk_boot_common.h>
+/*2020.05.27 longcheer xugui get cmdline is_lcm_connected start*/
+static unsigned int is_lcmconnected;
+static int __init is_lcm_get(char *line)
+{
+	if (!strcmp(line, "1")) {
+		is_lcmconnected = 1;
+	} else {
+		is_lcmconnected = 0;
+	}
+	DBG(0, "is_lcmconnected = %d\n", is_lcmconnected);
+	return 1;
+}
+
+__setup("is_lcm_connected=", is_lcm_get);
+/*2020.05.27 longcheer xugui get cmdline is_lcm_connected end*/
 
 #define FRA (48)
 #define PARA (28)
@@ -109,10 +125,12 @@ void usb_phy_switch_to_usb(void)
 #define SHFT_RG_USB20_PHY_REV6 30
 void usb_phy_tuning(void)
 {
-	static bool inited;
+	//static bool inited;  //2020.03.27 longcheer xugui Remove unnecessary variables
 	static s32 u2_vrt_ref, u2_term_ref, u2_enhance;
-	static struct device_node *of_node;
+	//static struct device_node *of_node;  //2020.03.27 longcheer xugui Remove unnecessary variables
 
+/*2020.03.27 longcheer xugui Remove node resolution and use master-slave recognition instead start*/
+#if 0
 	if (!inited) {
 		u2_vrt_ref = u2_term_ref = u2_enhance = -1;
 		of_node = of_find_compatible_node(NULL,
@@ -129,6 +147,27 @@ void usb_phy_tuning(void)
 		inited = true;
 	} else if (!of_node)
 		return;
+#endif
+/*2020.03.27 longcheer xugui Remove node resolution and use master-slave recognition instead end*/
+
+/*2020.03.27 longcheer xugui usb_phy_tuning start*/
+	if (mtk_musb->is_host) {
+		DBG(0, "usb_phy_tuning_host\n");
+		u2_vrt_ref = 1;
+		u2_term_ref = 1;
+		u2_enhance = 1;
+	} else {
+		if (is_lcmconnected == 1) {
+			u2_vrt_ref = 5;
+			u2_term_ref = 4;
+			u2_enhance = 1;
+		} else if (is_lcmconnected == 0) {
+			u2_vrt_ref = 3;
+			u2_term_ref = 3;
+			u2_enhance = 1;
+		}
+	}
+/*2020.03.27 longcheer xugui usb_phy_tuning end*/
 
 	if (u2_vrt_ref != -1) {
 		if (u2_vrt_ref <= VAL_MAX_WIDTH_3) {
@@ -765,7 +804,19 @@ void usb_phy_recover(void)
 		DBG(0, "apply efuse setting, RG_USB20_INTR_CAL=0x%x\n",
 			efuse_val);
 		USBPHY_CLR32(0x04, (0x1F<<19));
-		USBPHY_SET32(0x04, (efuse_val<<19));
+		/*2020.03.27 longcheer xugui usb_phy_recover start*/
+		if (mtk_musb->is_host) {
+			DBG(0, "usb_phy_recover_host\n");
+			USBPHY_SET32(0x04, (0x18<<19));
+		} else {
+			if (is_lcmconnected == 1) {
+				DBG(0, "lcmconnected\n");
+				USBPHY_SET32(0x04, (0x1E<<19));
+			} else if (is_lcmconnected == 0) {
+				USBPHY_SET32(0x04, (efuse_val<<19));
+			}
+		}
+		/*2020.03.27 longcheer xugui usb_phy_recover end*/
 	}
 
 	/* disc threshold to max, RG_USB20_DISCTH[7:4], dft:1000, MAX:1111 */
