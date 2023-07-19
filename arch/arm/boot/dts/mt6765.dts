@@ -2,6 +2,7 @@
  * Mediatek's MT6765 SoC device tree source
  *
  * Copyright (C) 2015 MediaTek Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -656,6 +657,38 @@
 
 	goodix_fp: fingerprint {
 		compatible = "mediatek,goodix-fp";
+	};
+
+	fpsensor_fp_eint:fpsensor_fp_eint{
+		compatible = "mediatek,fpsensor_fp_eint";
+		int-gpios = <&pio 2 0x0>;
+	};
+
+	fpsensor_finger:fpsensor_finger{
+		compatible = "mediatek,fingerprint";
+		fpc,enable-wakeup;
+	};
+
+	chr_stat: chr_stat {
+                compatible = "mediatek, chr_stat-eint";
+        };
+/*
+	ant_check {
+		compatible = "longcheer,ant_check";
+		ant_check_gpio = <&pio 78 0x0>;
+	};
+
+	ant_check_div {
+		compatible = "longcheer,ant_check_div";
+		ant_check_div_gpio = <&pio 54 0x0>;
+	};
+*/
+	swtp: swtp {
+		compatible = "mediatek, swtp-eint";
+	};
+	
+	swtp1: swtp1 {
+		compatible = "mediatek, swtp1-eint";
 	};
 
 	mt6357_gauge {
@@ -1795,7 +1828,7 @@
 	};
 
 	spi1: spi@11010000 {
-		compatible = "mediatek,mt6765-spi";
+		compatible = "mediatek,mt6765-spi","mediatek,mt6765-spi-fp";
 		mediatek,pad-select = <0>;
 		reg = <0 0x11010000 0 0x1000>;
 		interrupts = <GIC_SPI 122 IRQ_TYPE_LEVEL_LOW>;
@@ -2656,6 +2689,14 @@
 		compatible = "mediatek,flashlight_core";
 	};
 
+	flashlights_dummy_gpio: flashlights_dummy_gpio {
+		compatible = "mediatek,flashlights_dummy_gpio";
+	};
+
+	flashlights_sy7803: flashlights_sy7803 {
+		compatible = "mediatek,flashlights_sy7803";
+	};
+
 	flashlights_mt6370: flashlights_mt6370 {
 		compatible = "mediatek,flashlights_mt6370";
 		decouple = <0>;
@@ -2687,20 +2728,22 @@
 		compatible = "mediatek,mt-charger";
 	};
 
+
+
 	lk_charger: lk_charger {
 		compatible = "mediatek,lk_charger";
 		enable_anime;
-		enable_pe_plus;
-		enable_pd20_reset;
+		/* enable_pe_plus; */
+		/* enable_pd20_reset; */
 		power_path_support;
 		max_charger_voltage = <6500000>;
 		fast_charge_voltage = <3000000>;
 
 		/* charging current */
 		usb_charger_current = <500000>;
-		ac_charger_current = <2050000>;
-		ac_charger_input_current = <3200000>;
-		non_std_ac_charger_current = <500000>;
+		ac_charger_current = <2040000>;
+		ac_charger_input_current = <2400000>;
+		non_std_ac_charger_current = <1020000>;
 		charging_host_charger_current = <1500000>;
 		ta_ac_charger_current = <3000000>;
 		pd_charger_current = <500000>;
@@ -2710,24 +2753,23 @@
 		temp_t3_threshold = <45>;
 		temp_t1_threshold = <0>;
 	};
-
 	charger: charger {
 		compatible = "mediatek,charger";
 		algorithm_name = "SwitchCharging";
-		/* enable_sw_jeita; */
-		enable_pe_plus;
-		enable_pe_2;
-		enable_pe_3;
-		enable_pe_4;
-		enable_type_c;
+		enable_sw_jeita;
+		/* enable_pe_plus;*/
+		/* enable_pe_2; */
+		/* enable_pe_3; */
+		/* enable_pe_4; */
+		/* enable_type_c;*/
 		power_path_support;
-		enable_dynamic_mivr;
+		/* enable_dynamic_mivr; */
 		disable_pd_dual;
 
 		/* common */
-		battery_cv = <4350000>;
-		max_charger_voltage = <6500000>;
-		min_charger_voltage = <4600000>;
+		battery_cv = <4368000>;
+		max_charger_voltage = <10500000>;
+		min_charger_voltage = <4500000>;
 
 		/* dynamic mivr */
 		min_charger_voltage_1 = <4400000>;
@@ -2739,9 +2781,9 @@
 		usb_charger_current_unconfigured = <70000>;
 		usb_charger_current_configured = <500000>;
 		usb_charger_current = <500000>;
-		ac_charger_current = <2050000>;
-		ac_charger_input_current = <3200000>;
-		non_std_ac_charger_current = <500000>;
+		ac_charger_current = <2040000>;
+		ac_charger_input_current = <2400000>;
+		non_std_ac_charger_current = <1020000>;
 		charging_host_charger_current = <1500000>;
 		apple_1_0a_charger_current = <650000>;
 		apple_2_1a_charger_current = <800000>;
@@ -2750,20 +2792,26 @@
 		/* sw jeita */
 		jeita_temp_above_t4_cv = <4240000>;
 		jeita_temp_t3_to_t4_cv = <4240000>;
-		jeita_temp_t2_to_t3_cv = <4340000>;
-		jeita_temp_t1_to_t2_cv = <4240000>;
-		jeita_temp_t0_to_t1_cv = <4040000>;
-		jeita_temp_below_t0_cv = <4040000>;
-		temp_t4_thres = <50>;
-		temp_t4_thres_minus_x_degree = <47>;
-		temp_t3_thres = <45>;
-		temp_t3_thres_minus_x_degree = <39>;
-		temp_t2_thres = <10>;
+		jeita_temp_t2_to_t3_cv = <4400000>;
+		jeita_temp_t1_to_t2_cv = <4400000>;
+		jeita_temp_t0_to_t1_cv = <4400000>;
+		jeita_temp_below_t0_cv = <4400000>;
+
+		jeita_current_t3_to_t4 = <2040000>;
+		jeita_current_t2_to_t3 = <2040000>;
+		jeita_current_t1_to_t2 = <1500000>;
+		jeita_current_t0_to_t1 = <540000>;
+
+		temp_t4_thres = <60>;
+		temp_t4_thres_minus_x_degree = <59>;
+		temp_t3_thres = <50>;
+		temp_t3_thres_minus_x_degree = <49>;
+		temp_t2_thres = <15>;
 		temp_t2_thres_plus_x_degree = <16>;
-		temp_t1_thres = <0>;
-		temp_t1_thres_plus_x_degree = <6>;
+		temp_t1_thres = <10>;
+		temp_t1_thres_plus_x_degree = <11>;
 		temp_t0_thres = <0>;
-		temp_t0_thres_plus_x_degree = <0>;
+		temp_t0_thres_plus_x_degree = <1>;
 		temp_neg_10_thres = <0>;
 
 		/* battery temperature protection */
@@ -2835,6 +2883,10 @@
 	pd_adapter: pd_adapter {
 		compatible = "mediatek,pd_adapter";
 		adapter_name = "pd_adapter";
+	};
+	
+	bq2560x: bq2560x {
+		compatible = "ti,bq2560x_charger";
 	};
 
 	rt9465_slave_chr: rt9465_slave_chr {
