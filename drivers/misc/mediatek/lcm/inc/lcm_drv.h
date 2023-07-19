@@ -825,7 +825,6 @@ struct dsi_cmd_desc {
 	unsigned int vc;
 	unsigned int dlen;
 	unsigned int link_state;
-	unsigned int cmd;
 	char *payload;
 };
 
@@ -842,9 +841,6 @@ struct LCM_UTIL_FUNCS {
 	void (*send_cmd)(unsigned int cmd);
 	void (*send_data)(unsigned int data);
 	unsigned int (*read_data)(void);
-
-	void (*dsi_set_cmdq_V4)(struct LCM_setting_table_V3 *para_list,
-			unsigned int size,	bool hs);
 
 	void (*dsi_set_cmdq_V3)(struct LCM_setting_table_V3 *para_list,
 			unsigned int size, unsigned char force_update);
@@ -945,8 +941,6 @@ struct LCM_DRIVER {
 	void (*set_pwm_for_mix)(int enable);
 
 	void (*aod)(int enter);
-	void (*set_aod_area_cmdq)(void *handle, unsigned char *area);
-	int (*get_doze_delay)(void);
 };
 
 /* LCM Driver Functions */

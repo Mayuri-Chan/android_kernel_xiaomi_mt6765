@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2015 MediaTek Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -16,6 +17,11 @@
 
 #include <lcm_drv.h>
 
+extern struct LCM_DRIVER nt36525b_vdo_hdp_boe_dijing_lcm_drv;
+extern struct LCM_DRIVER ft8006s_vdo_hdp_boe_helitai_lcm_drv;
+extern struct LCM_DRIVER hx83102d_vdo_hdp_boe_xinli_lcm_drv;
+extern struct LCM_DRIVER nt36525b_vdo_hdp_boe_helitai_lcm_drv;
+extern struct LCM_DRIVER nt36525b_vdo_hdp_panda_shengchao_lcm_drv;
 extern struct LCM_DRIVER otm1282a_hd720_dsi_vdo_60hz_lcm_drv;
 extern struct LCM_DRIVER otm1282a_hd720_dsi_vdo_lcm_drv;
 extern struct LCM_DRIVER nt35595_fhd_dsi_cmd_truly_8163_lcm_drv;
