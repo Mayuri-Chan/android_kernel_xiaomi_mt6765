@@ -11,4 +11,4 @@
 # GNU General Public License for more details.
 #
 
-obj-y += gc5035mipiraw_Sensor.o
+obj-y += gc5035dh15mipiraw_Sensor.o

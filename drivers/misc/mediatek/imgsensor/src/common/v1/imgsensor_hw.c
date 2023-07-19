@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2017 MediaTek Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -128,14 +129,15 @@ static enum IMGSENSOR_RETURN imgsensor_hw_power_sequence(
 		if (pwr_status == IMGSENSOR_HW_POWER_STATUS_ON &&
 		   ppwr_info->pin != IMGSENSOR_HW_PIN_UNDEF) {
 			pdev = phw->pdev[psensor_pwr->id[ppwr_info->pin]];
-		/*pr_debug(
-		 *  "sensor_idx = %d, pin=%d, pin_state_on=%d, hw_id =%d\n",
-		 *  sensor_idx,
-		 *  ppwr_info->pin,
-		 *  ppwr_info->pin_state_on,
-		 * psensor_pwr->id[ppwr_info->pin]);
-		 */
-
+/*
+        pr_info("litao curr_sensor_name %s,ppwr_seq->name %s  psensor_idx = %d, pin=%d, pin_state_on=%d, hw_id =%d\n",
+        pcurr_idx,
+        ppwr_seq->name,
+        sensor_idx,
+        ppwr_info->pin,
+        ppwr_info->pin_state_on,
+        psensor_pwr->id[ppwr_info->pin]); 
+*/
 			if (pdev->set != NULL)
 				pdev->set(
 				    pdev->pinstance,
