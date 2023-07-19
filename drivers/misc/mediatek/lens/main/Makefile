@@ -105,5 +105,6 @@ ifeq ($(CONFIG_MTK_LENS_BU63165AF_SUPPORT), y)
 else
   obj-y  += common/bu63169af/
 endif
-
+obj-$(CONFIG_MTK_LENS_CN3927AF_SUPPORT) += common/cn3927af/
+obj-$(CONFIG_MTK_LENS_GT9769AF_SUPPORT) += common/gt9769af/
 endif

@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2015 MediaTek Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -329,5 +330,26 @@ extern long WV511AAF_Ioctl(struct file *a_pstFile, unsigned int a_u4Command,
 			   unsigned long a_u4Param);
 extern int WV511AAF_Release(struct inode *a_pstInode, struct file *a_pstFile);
 extern int WV511AAF_GetFileName(unsigned char *pFileName);
+/*M505 AF */
+#define CN3927AF_SetI2Cclient CN3927AF_SetI2Cclient_Main
+#define CN3927AF_Ioctl CN3927AF_Ioctl_Main
+#define CN3927AF_Release CN3927AF_Release_Main
+#define CN3927AF_GetFileName CN3927AF_GetFileName_Main
+extern int CN3927AF_SetI2Cclient(struct i2c_client *pstAF_I2Cclient,
+				 spinlock_t *pAF_SpinLock, int *pAF_Opened);
+extern long CN3927AF_Ioctl(struct file *a_pstFile, unsigned int a_u4Command,
+			   unsigned long a_u4Param);
+extern int CN3927AF_Release(struct inode *a_pstInode, struct file *a_pstFile);
+extern int CN3927AF_GetFileName(unsigned char *pFileName);
 
+#define GT9769AF_SetI2Cclient GT9769AF_SetI2Cclient_Main
+#define GT9769AF_Ioctl GT9769AF_Ioctl_Main
+#define GT9769AF_Release GT9769AF_Release_Main
+#define GT9769AF_GetFileName GT9769AF_GetFileName_Main
+extern int GT9769AF_SetI2Cclient(struct i2c_client *pstAF_I2Cclient,
+				 spinlock_t *pAF_SpinLock, int *pAF_Opened);
+extern long GT9769AF_Ioctl(struct file *a_pstFile, unsigned int a_u4Command,
+			   unsigned long a_u4Param);
+extern int GT9769AF_Release(struct inode *a_pstInode, struct file *a_pstFile);
+extern int GT9769AF_GetFileName(unsigned char *pFileName);
 #endif
