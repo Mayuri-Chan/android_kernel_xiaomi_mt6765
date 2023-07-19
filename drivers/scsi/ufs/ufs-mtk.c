@@ -426,10 +426,10 @@ static int ufs_mtk_hie_cfg_request(unsigned int mode,
 	 * Bypass error by unsuccesful keyhint registration (-ENODEV)
 	 * because ufs host driver shall work fine in this case.
 	 */
-	if ((key_idx < 0) && (key_idx != -ENODEV))
+	if ((key_idx < 0) && (key_idx != -ENODEV)) {
+		spin_unlock_irqrestore(info->hba->host->host_lock, flags);
 		return key_idx;
-
-	spin_unlock_irqrestore(info->hba->host->host_lock, flags);
+	}
 
 	if (need_update || (key_idx < 0)) {
 
@@ -478,8 +478,6 @@ static int ufs_mtk_hie_cfg_request(unsigned int mode,
 			UFS_REG_CRYPTO_CAPABILITY);
 		addr = (cpt_cap.cap.cfg_ptr << 8) + (u32)(key_idx << 7);
 
-		spin_lock_irqsave(info->hba->host->host_lock, flags);
-
 		/* write configuration only to register */
 		for (i = 0; i < 32; i++) {
 			ufshcd_writel(info->hba, cpt_cfg.cfgx_raw[i],
@@ -487,14 +485,10 @@ static int ufs_mtk_hie_cfg_request(unsigned int mode,
 			dev_dbg(info->hba->dev, "0x%x=0x%x\n",
 				(addr + i * 4), cpt_cfg.cfgx_raw[i]);
 		}
-
-		spin_unlock_irqrestore(info->hba->host->host_lock, flags);
 #else
 		hie_para = ((key_idx & 0xFF) << UFS_HIE_PARAM_OFS_CFG_ID) |
 			((mode & 0xFF) << UFS_HIE_PARAM_OFS_MODE) |
 			((len & 0xFF) << UFS_HIE_PARAM_OFS_KEY_TOTAL_BYTE);
-
-		spin_lock_irqsave(info->hba->host->host_lock, flags);
 
 		/* init ufs crypto IP for HIE and program key by first 8B */
 		mt_secure_call(MTK_SIP_KERNEL_CRYPTO_HIE_CFG_REQUEST,
@@ -505,10 +499,10 @@ static int ufs_mtk_hie_cfg_request(unsigned int mode,
 			mt_secure_call(MTK_SIP_KERNEL_CRYPTO_HIE_CFG_REQUEST,
 				key_ptr[i], key_ptr[i + 1], key_ptr[i + 2], 0);
 		}
-
-		spin_unlock_irqrestore(info->hba->host->host_lock, flags);
 #endif
 	}
+
+	spin_unlock_irqrestore(info->hba->host->host_lock, flags);
 
 	cmd = info->cmd;
 
@@ -665,9 +659,8 @@ static void ufs_mtk_advertise_hci_quirks(struct ufs_hba *hba)
 	hba->quirks |= UFSHCD_QUIRK_UFS_HCI_VENDOR_HOST_RST;
 #endif
 
-#if defined(UFS_MTK_PLATFORM_UFS_HCI_MANUALLY_DISABLE_AH8_BEFORE_RING_DOORBELL)
+	/* Always enable "Disable AH8 before RDB" */
 	hba->quirks |= UFSHCD_QUIRK_UFS_HCI_DISABLE_AH8_BEFORE_RDB;
-#endif
 
 	dev_info(hba->dev, "hci quirks: %#x\n", hba->quirks);
 }

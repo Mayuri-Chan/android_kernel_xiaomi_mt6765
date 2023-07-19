@@ -41,6 +41,7 @@
 #include "md_sys1_platform.h"
 #include "cldma_reg.h"
 #include "modem_reg_base.h"
+#include "modem_secure_base.h"
 
 static struct ccci_clk_node clk_table[] = {
 	{ NULL,	"scp-sys-md1-main"},
@@ -499,7 +500,7 @@ void md_cd_dump_debug_register(struct ccci_modem *md)
 	if (per_md_data->md_dbg_dump_flag &
 		 (MD_DBG_DUMP_ALL & ~(1 << MD_DBG_DUMP_SMEM))) {
 		dump_reg0 = ioremap_nocache(MD1_OPEN_DEBUG_APB_CLK, 0x1000);
-		ccci_write32(dump_reg0, 0x430, 0x1);
+		mdreg_write32(MD_REG_EN_APB_CLK, 0x1);
 		udelay(1000);
 		CCCI_MEM_LOG_TAG(md->index, TAG,
 			"md_dbg_sys:0x%X\n", cldma_read32(dump_reg0, 0x430));
@@ -517,7 +518,7 @@ void md_cd_dump_debug_register(struct ccci_modem *md)
 		/* Stop all PCMon */
 		dump_reg0 =
 		 ioremap_nocache(MD_PC_MONITOR_BASE, MD_PC_MONITOR_LEN);
-		ccci_write32(dump_reg0, 0x800, 0x22); /* stop MD PCMon */
+		mdreg_write32(MD_REG_PC_MONITOR, 0x22); /* stop MD PCMon */
 		ccci_util_mem_dump(md->index,
 			CCCI_DUMP_MEM_DUMP, (dump_reg0 + 0x800), 0x100);
 		ccci_util_mem_dump(md->index,
@@ -534,7 +535,7 @@ void md_cd_dump_debug_register(struct ccci_modem *md)
 		ccci_util_mem_dump(md->index,
 			CCCI_DUMP_MEM_DUMP, (dump_reg0 + 0x400), 0x400);
 		/* Resume PCMon */
-		ccci_write32(dump_reg0, 0x800, 0x11);
+		mdreg_write32(MD_REG_PC_MONITOR, 0x11);
 		ccci_read32(dump_reg0, 0x800);
 		iounmap(dump_reg0);
 	}
@@ -680,7 +681,7 @@ void md_cd_dump_debug_register(struct ccci_modem *md)
 #endif
 		dump_reg0 =
 		 ioremap_nocache(MD_MCU_MO_BUSREC_BASE, MD_MCU_MO_BUSREC_LEN);
-		ccci_write32(dump_reg0, 0x10, 0x0); /* stop */
+		mdreg_write32(MD_REG_MDMCU_BUSMON, 0x0); /* stop */
 		ccci_util_mem_dump(md->index,
 			CCCI_DUMP_MEM_DUMP, (dump_reg0 + 0x0), 0x104);
 		ccci_util_mem_dump(md->index,
@@ -693,11 +694,11 @@ void md_cd_dump_debug_register(struct ccci_modem *md)
 			CCCI_DUMP_MEM_DUMP, (dump_reg0 + 0x500), 0x30);
 		ccci_util_mem_dump(md->index,
 			CCCI_DUMP_MEM_DUMP, (dump_reg0 + 0x700), 0x51C);
-		ccci_write32(dump_reg0, 0x10, 0x1); /* re-start */
+		mdreg_write32(MD_REG_MDMCU_BUSMON, 0x1); /* re-start */
 		iounmap(dump_reg0);
 		dump_reg0 =
 		 ioremap_nocache(MD_INFRA_BUSREC_BASE, MD_INFRA_BUSREC_LEN);
-		ccci_write32(dump_reg0, 0x10, 0x0); /* stop */
+		mdreg_write32(MD_REG_MDINFRA_BUSMON, 0x0); /* stop */
 		ccci_util_mem_dump(md->index,
 			CCCI_DUMP_MEM_DUMP, (dump_reg0 + 0x0), 0x104);
 		ccci_util_mem_dump(md->index,
@@ -710,7 +711,7 @@ void md_cd_dump_debug_register(struct ccci_modem *md)
 			CCCI_DUMP_MEM_DUMP, (dump_reg0 + 0x500), 0x30);
 		ccci_util_mem_dump(md->index,
 			CCCI_DUMP_MEM_DUMP, (dump_reg0 + 0x700), 0x51C);
-		ccci_write32(dump_reg0, 0x10, 0x1);/* re-start */
+		mdreg_write32(MD_REG_MDINFRA_BUSMON, 0x1);/* re-start */
 		iounmap(dump_reg0);
 #if defined(CONFIG_ARCH_MT6765)
 		dump_reg0 =

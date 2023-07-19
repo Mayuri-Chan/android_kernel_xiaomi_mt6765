@@ -86,6 +86,8 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 #define KERNEL_ID			0xffffffffL
 
+extern int gFWALLOC;
+
 #if defined(LINUX) && defined(__KERNEL__)
 #define OSConfineArrayIndexNoSpeculation(index, size) array_index_nospec((index), (size))
 #elif defined(__QNXNTO__)
@@ -1829,6 +1831,30 @@ void OSDumpVersionInfo(DUMPDEBUG_PRINTF_FUNC *pfnDumpDebugPrintf,
 @Return         IMG_TRUE if safe, IMG_FALSE otherwise.
 */ /**************************************************************************/
 IMG_BOOL OSIsWriteCombineUnalignedSafe(void);
+
+#if defined(CONFIG_MACH_MT6761)
+/*************************************************************************/ /*!
+@Function	OSAllocPagesSafe
+@Description	Clark 33bits has trick in HW design which will automatical
+		shift 1G on PA bus access. This requires DDK to set subtract
+		1G PA into MMU. However this would possible to hit reserved
+		0x1FC00000 ~ 0x1FC002FFF on MIPS inside 8XE
+		This function filter-out page range 0x5FC00000 ~ 0x5FC002FFF
+		to avoid pages contain the forbidden range.
+		This function is used as lv 2 guard when lv 1 was failed.
+		No use if lv 1 guard init successfully
+@Return         Pages from alloc_pages.
+*/ /**************************************************************************/
+struct page *OSAllocPagesSafe(gfp_t gfp_flags, IMG_UINT32 ui32Order);
+
+/*************************************************************************/ /*!
+@Function	OSAllocPages
+@Description	wrapper for alloc_pages
+@Return         Pages from alloc_pages.
+*/ /**************************************************************************/
+struct page *OSAllocPages(gfp_t gfp_flags, IMG_UINT32 ui32Order);
+extern struct page* (*pfnAllocPage)(gfp_t gfp_flags, IMG_UINT32 ui32Order);
+#endif
 
 #endif /* __OSFUNC_H__ */
 

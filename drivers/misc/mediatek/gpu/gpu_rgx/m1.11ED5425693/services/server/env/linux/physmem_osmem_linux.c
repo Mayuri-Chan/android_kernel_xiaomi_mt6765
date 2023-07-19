@@ -1685,7 +1685,11 @@ _AllocOSPage_CMA(PMR_OSPAGEARRAY_DATA *psPageArrayData,
 			   normal page allocation though we expect dma_alloc_coherent()
 			   already attempts this internally also before failing but
 			   nonetheless it does no harm to retry the allocation ourselves */
+#if defined(CONFIG_MACH_MT6761)
+			page = pfnAllocPage(gfp_flags, ui32AllocOrder);
+#else
 			page = alloc_pages(gfp_flags, ui32AllocOrder);
+#endif
 			if (page)
 			{
 				/* Taint bus_addr as alloc_page, needed when freeing;
@@ -1811,7 +1815,11 @@ _AllocOSPage(PMR_OSPAGEARRAY_DATA *psPageArrayData,
 
 	/* Allocate the page */
 	DisableOOMKiller();
+#if defined(CONFIG_MACH_MT6761)
+	psPage = pfnAllocPage(gfp_flags, uiAllocOrder);
+#else
 	psPage = alloc_pages(gfp_flags, uiAllocOrder);
+#endif
 	EnableOOMKiller();
 
 	if (psPage == NULL)
@@ -2308,7 +2316,11 @@ _AllocOSPages_Sparse(PMR_OSPAGEARRAY_DATA *psPageArrayData,
 			else
 			{
 				DisableOOMKiller();
+#if defined(CONFIG_MACH_MT6761)
+				ppsPageArray[puiAllocIndices[i]] = pfnAllocPage(ui32GfpFlags, uiOrder);
+#else
 				ppsPageArray[puiAllocIndices[i]] = alloc_pages(ui32GfpFlags, uiOrder);
+#endif
 				EnableOOMKiller();
 			}
 

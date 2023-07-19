@@ -182,6 +182,69 @@ void OSThreadDumpInfo(DUMPDEBUG_PRINTF_FUNC* pfnDumpDebugPrintf,
 	}
 }
 
+#if defined(CONFIG_MACH_MT6761)
+struct page *OSAllocPages(gfp_t gfp_flags, IMG_UINT32 ui32Order)
+{
+	return alloc_pages(gfp_flags, ui32Order);
+}
+
+struct page *OSAllocPagesSafe(gfp_t gfp_flags, IMG_UINT32 ui32Order)
+{
+	static struct page *pasLockDownPages[4];
+	static int lock_count = 0;
+
+	IMG_CPU_PHYADDR sCpuPAddr;
+	IMG_UINT32 uiSize;
+	struct page *psPage;
+	struct page *pasRP[2];
+	int count = 0;
+	int i;
+
+	/*
+	 * The do-while worst case is entering 5 times and got 1 Page
+	 * Consider order 0 case which is 4K page, the worst case is getting
+	 * from page 0x5FBFF000, 0x5FC00000, 0x5FC01000, 0x5FC02000 and
+	 * 0x5FC03000 respectively.
+	 * The caller would finally get 0x5FC03000 to use
+	 *
+	 * Consider order 1 case, which is 8K page, the wast case is getting
+	 * from page 0x5FBFE000, 0x5FC00000, 0x5FC02000 and
+	 * 0x5FC03000 respectively. Cost 4 times in loop
+	 *
+	 * Order > 1 would got 3 times in loop for worst-case
+	 *
+	 * LockDown:
+	 * To complete lv 1 guard failure, lv 2 guard provides same mechanism
+	 * to keep order 0 ~ 1 pages range from forbidden PA,
+	 * i.e., these pages would be holden unused once captured in this
+	 * function, to prevent above worst cases.
+	 * Note, keeping order 2 and above is wasted so keeps only order 0 ~ 1
+	 *
+	 */
+	do {
+		psPage = alloc_pages(gfp_flags, ui32Order);
+
+		sCpuPAddr.uiAddr = IMG_CAST_TO_CPUPHYADDR_UINT(page_to_phys(psPage));
+		uiSize = (1 << ui32Order) * PAGE_SIZE;
+
+		if(sCpuPAddr.uiAddr >= (0x5FC00000 - uiSize) &&
+				sCpuPAddr.uiAddr < 0x5FC03000) {
+			if (ui32Order < 2)
+				pasLockDownPages[lock_count++] = psPage;
+			else
+				pasRP[count++] = psPage;
+		} else {
+			break;
+		}
+	} while(true);
+
+	for (i = 0; i < count; i++)
+		__free_pages(pasRP[i], ui32Order);
+
+	return psPage;
+}
+#endif
+
 PVRSRV_ERROR OSPhyContigPagesAlloc(PVRSRV_DEVICE_NODE *psDevNode, size_t uiSize,
 							PG_HANDLE *psMemHandle, IMG_DEV_PHYADDR *psDevPAddr)
 {
@@ -220,16 +283,22 @@ PVRSRV_ERROR OSPhyContigPagesAlloc(PVRSRV_DEVICE_NODE *psDevNode, size_t uiSize,
 #endif
 
 	/*allocate the pages */
+#if defined(CONFIG_MACH_MT6761)
+	psPage = pfnAllocPage(gfp_flags, ui32Order);
+#else
 	psPage = alloc_pages(gfp_flags, ui32Order);
+#endif
 	if (psPage == NULL)
 	{
 		return PVRSRV_ERROR_OUT_OF_MEMORY;
 	}
 	uiSize = (1 << ui32Order) * PAGE_SIZE;
 
+
 	psMemHandle->u.pvHandle = psPage;
 	psMemHandle->ui32Order = ui32Order;
 	sCpuPAddr.uiAddr = IMG_CAST_TO_CPUPHYADDR_UINT(page_to_phys(psPage));
+
 
 	/*
 	 * Even when more pages are allocated as base MMU object we still need one single physical address because

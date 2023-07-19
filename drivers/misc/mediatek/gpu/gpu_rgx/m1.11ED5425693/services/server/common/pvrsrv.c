@@ -2419,7 +2419,6 @@ static PVRSRV_ERROR _ReadStateFlag(const PVRSRV_DEVICE_NODE *psDevice,
 	return PVRSRV_OK;
 }
 #endif
-
 PVRSRV_ERROR PVRSRVDeviceInitialise(PVRSRV_DEVICE_NODE *psDeviceNode)
 {
 	IMG_BOOL bInitSuccesful = IMG_FALSE;
@@ -2445,7 +2444,6 @@ PVRSRV_ERROR PVRSRVDeviceInitialise(PVRSRV_DEVICE_NODE *psDeviceNode)
 		return eError;
 	}
 #endif
-
 #if defined(SUPPORT_RGX)
 	eError = RGXInit(psDeviceNode);
 	if (eError != PVRSRV_OK)
