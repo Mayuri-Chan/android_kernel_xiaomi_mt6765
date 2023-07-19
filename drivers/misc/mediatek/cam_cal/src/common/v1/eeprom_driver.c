@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2018 MediaTek Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -92,7 +93,7 @@ static int EEPROM_set_i2c_bus(unsigned int deviceID,
 		return -EFAULT;
 
 	client = g_pstI2Cclients[get_i2c_dev_sel(idx)];
-	pr_debug("%s end! deviceID=%d index=%u client=%p\n",
+	pr_info("weijinxia %s end! deviceID=%d index=%u client=%p\n",
 		 __func__, deviceID, idx, client);
 
 	if (client == NULL) {
@@ -122,10 +123,10 @@ static int EEPROM_get_cmd_info(unsigned int sensorID,
 
 	cam_cal_get_sensor_list(&pCamCalList);
 	if (pCamCalList != NULL) {
-		pr_debug("pCamCalList!=NULL && pCamCalFunc!= NULL\n");
+		pr_info("weijinxia pCamCalList!=NULL && pCamCalFunc!= NULL\n");
 		for (i = 0; pCamCalList[i].sensorID != 0; i++) {
 			if (pCamCalList[i].sensorID == sensorID) {
-				pr_debug("pCamCalList[%d].sensorID==%x\n", i,
+				pr_info("weijinxia pCamCalList[%d].sensorID==%x\n", i,
 				       pCamCalList[i].sensorID);
 
 				cmdInfo->i2cAddr = pCamCalList[i].slaveID >> 1;
@@ -133,7 +134,7 @@ static int EEPROM_get_cmd_info(unsigned int sensorID,
 					pCamCalList[i].readCamCalData;
 				cmdInfo->maxEepromSize =
 					pCamCalList[i].maxEepromSize;
-
+               // pr_info("weijinxia cmdInfo->i2cAddr=%d,cmdInfo->readCMDFunc=%d",cmdInfo->i2cAddr,cmdInfo->readCMDFunc);
 				/*
 				 * Default 8K for Common_read_region driver
 				 * 0 for others
@@ -168,14 +169,14 @@ static struct stCAM_CAL_CMD_INFO_STRUCT *EEPROM_get_cmd_info_ex
 		for (i = 0; i < IMGSENSOR_SENSOR_IDX_MAX_NUM; i++) {
 			/* To Set Client */
 			if (g_camCalDrvInfo[i].sensorID == 0) {
-				pr_debug("Start get_cmd_info!\n");
+				pr_info("weijinxia Start get_cmd_info!\n");
 				EEPROM_get_cmd_info(sensorID,
 					&g_camCalDrvInfo[i]);
 
 				if (g_camCalDrvInfo[i].readCMDFunc != NULL) {
 					g_camCalDrvInfo[i].sensorID = sensorID;
 					g_camCalDrvInfo[i].deviceID = deviceID;
-					pr_debug("deviceID=%d, SensorID=%x\n",
+					pr_info("weijinxia deviceID=%d, SensorID=%x\n",
 						deviceID, sensorID);
 				}
 				break;
@@ -207,7 +208,7 @@ static int EEPROM_HW_i2c_probe
 #endif
 
 	/* Default EEPROM Slave Address Main= 0xa0 */
-	g_pstI2Cclients[I2C_DEV_IDX_1]->addr = 0x50;
+	g_pstI2Cclients[I2C_DEV_IDX_1]->addr = 0x54;
 	spin_unlock(&g_spinLock);
 
 	return 0;
@@ -240,7 +241,7 @@ static int EEPROM_HW_i2c_probe2
 #endif
 
 	/* Default EEPROM Slave Address sub = 0xa8 */
-	g_pstI2Cclients[I2C_DEV_IDX_2]->addr = 0x54;
+	g_pstI2Cclients[I2C_DEV_IDX_2]->addr = 0x51;
 	spin_unlock(&g_spinLock);
 
 	return 0;
@@ -271,7 +272,7 @@ static int EEPROM_HW_i2c_probe3
 #endif
 
 	/* Default EEPROM Slave Address Main2 = 0xa4 */
-	g_pstI2Cclients[I2C_DEV_IDX_3]->addr = 0x52;
+	g_pstI2Cclients[I2C_DEV_IDX_3]->addr = 0x50;
 	spin_unlock(&g_spinLock);
 
 	return 0;
@@ -317,6 +318,61 @@ struct i2c_driver EEPROM_HW_i2c_driver = {
 		   },
 	.id_table = EEPROM_HW_i2c_id,
 };
+
+
+//add for main back eeprom begin
+static int EEPROM_HW_i2c_probe4
+	(struct i2c_client *client, const struct i2c_device_id *id)
+{
+	/* get sensor i2c client */
+	spin_lock(&g_spinLock);
+	g_pstI2Cclients[I2C_DEV_IDX_1] = client;
+
+	/* set I2C clock rate */
+#ifdef CONFIG_MTK_I2C_EXTENSION
+	g_pstI2Cclients[I2C_DEV_IDX_1]->timing = gi2c_dev_timing[I2C_DEV_IDX_1];
+	g_pstI2Cclients[I2C_DEV_IDX_1]->ext_flag &= ~I2C_POLLING_FLAG;
+#endif
+
+	/* Default EEPROM Slave Address Main= 0xa0 */
+	g_pstI2Cclients[I2C_DEV_IDX_1]->addr = 0x58;
+	spin_unlock(&g_spinLock);
+
+	return 0;
+}
+
+
+
+/**********************************************
+ * CAMERA_HW_i2c_remove
+ **********************************************/
+static int EEPROM_HW_i2c_remove4(struct i2c_client *client)
+{
+	return 0;
+}
+
+
+#ifdef CONFIG_OF
+static const struct of_device_id EEPROM_HW4_i2c_of_ids[] = {
+	{.compatible = "mediatek,camera_main_eeprom_backup",},
+	{}
+};
+#endif
+
+struct i2c_driver EEPROM_HW_i2c_driver4 = {
+	.probe = EEPROM_HW_i2c_probe4,
+	.remove = EEPROM_HW_i2c_remove4,
+	.driver = {
+		   .name = CAM_CAL_DRV_NAME,
+		   .owner = THIS_MODULE,
+
+#ifdef CONFIG_OF
+		   .of_match_table = EEPROM_HW4_i2c_of_ids,
+#endif
+		   },
+	.id_table = EEPROM_HW_i2c_id,
+};
+//add for main back eeprom end
 
 /*********************************************************
  * I2C Driver structure for Sub
@@ -372,6 +428,7 @@ static int EEPROM_HW_probe(struct platform_device *pdev)
 {
 	i2c_add_driver(&EEPROM_HW_i2c_driver2);
 	i2c_add_driver(&EEPROM_HW_i2c_driver3);
+    i2c_add_driver(&EEPROM_HW_i2c_driver4);
 	return i2c_add_driver(&EEPROM_HW_i2c_driver);
 }
 
@@ -383,6 +440,7 @@ static int EEPROM_HW_remove(struct platform_device *pdev)
 	i2c_del_driver(&EEPROM_HW_i2c_driver);
 	i2c_del_driver(&EEPROM_HW_i2c_driver2);
 	i2c_del_driver(&EEPROM_HW_i2c_driver3);
+    i2c_del_driver(&EEPROM_HW_i2c_driver4);
 	return 0;
 }
 
@@ -651,14 +709,14 @@ static long EEPROM_drv_ioctl(struct file *file,
 		break;
 
 	case CAM_CALIOC_G_READ:
-		pr_debug("CAM_CALIOC_G_READ start! offset=%d, length=%d\n",
+		pr_info("weijinxia CAM_CALIOC_G_READ start! offset=%d, length=%d\n",
 			ptempbuf->u4Offset, ptempbuf->u4Length);
 
 #ifdef CAM_CALGETDLT_DEBUG
 		do_gettimeofday(&ktv1);
 #endif
 
-		pr_debug("SensorID=%x DeviceID=%x\n",
+		pr_info("weijinxia SensorID=%x DeviceID=%x\n",
 			ptempbuf->sensorID, ptempbuf->deviceID);
 		pcmdInf = EEPROM_get_cmd_info_ex(
 			ptempbuf->sensorID,
@@ -669,7 +727,7 @@ static long EEPROM_drv_ioctl(struct file *file,
 		    (pcmdInf->maxEepromSize != 0) &&
 		    (pcmdInf->maxEepromSize <
 		     (ptempbuf->u4Offset + ptempbuf->u4Length))) {
-			pr_debug("Error!! not support address >= 0x%x!!\n",
+			pr_info("Error!! not support address >= 0x%x!!\n",
 				 pcmdInf->maxEepromSize);
 			kfree(pBuff);
 			kfree(pu1Params);
@@ -679,7 +737,7 @@ static long EEPROM_drv_ioctl(struct file *file,
 		if (pcmdInf != NULL && g_lastDevID != ptempbuf->deviceID) {
 			if (EEPROM_set_i2c_bus(ptempbuf->deviceID,
 					       pcmdInf) != 0) {
-				pr_debug("deviceID Error!\n");
+				pr_info("deviceID Error!\n");
 				kfree(pBuff);
 				kfree(pu1Params);
 				return -EFAULT;
