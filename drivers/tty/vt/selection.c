@@ -375,9 +375,7 @@ int paste_selection(struct tty_struct *tty)
 	while (sel_buffer && sel_buffer_lth > pasted) {
 		set_current_state(TASK_INTERRUPTIBLE);
 		if (tty_throttled(tty)) {
-			mutex_unlock(&sel_lock);
 			schedule();
-			mutex_lock(&sel_lock);
 			continue;
 		}
 		__set_current_state(TASK_RUNNING);
