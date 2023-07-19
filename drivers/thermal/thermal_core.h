@@ -30,6 +30,13 @@
 /* Initial state of a cooling device during binding */
 #define THERMAL_NO_TARGET -1UL
 
+/* sys I/F for thermal zone */
+#define to_thermal_zone(_dev) \
+	container_of(_dev, struct thermal_zone_device, device)
+/* sys I/F for cooling device */
+#define to_cooling_device(_dev)	\
+	container_of(_dev, struct thermal_cooling_device, device)
+
 /*
  * This structure is used to describe the behavior of
  * a certain cooling device on a certain trip point
@@ -56,6 +63,13 @@ struct thermal_instance {
 
 int thermal_register_governor(struct thermal_governor *);
 void thermal_unregister_governor(struct thermal_governor *);
+
+void thermal_zone_device_rebind_exception(struct thermal_zone_device *,
+					  const char *, size_t);
+void thermal_zone_device_unbind_exception(struct thermal_zone_device *,
+					  const char *, size_t);
+int thermal_zone_device_set_policy(struct thermal_zone_device *, char *);
+int thermal_build_list_of_policies(char *buf);
 
 #ifdef CONFIG_THERMAL_GOV_STEP_WISE
 int thermal_gov_step_wise_register(void);
