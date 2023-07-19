@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2016 Qualcomm Atheros, Inc
+ * Copyright (C) 2021 XiaoMi, Inc.
  *
  * GPL v2
  *
