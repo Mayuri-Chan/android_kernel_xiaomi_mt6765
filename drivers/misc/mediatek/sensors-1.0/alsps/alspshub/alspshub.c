@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2016 MediaTek Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -23,6 +24,7 @@
 
 
 #define ALSPSHUB_DEV_NAME     "alsps_hub_pl"
+#define MTK_OLD_FACTORY_CALIBRATION
 
 struct alspshub_ipi_data {
 	struct work_struct init_done_work;
@@ -529,8 +531,16 @@ static int pshub_factory_clear_cali(void)
 static int pshub_factory_set_cali(int32_t offset)
 {
 	struct alspshub_ipi_data *obj = obj_ipi_data;
+	int err = 0;
 
 	obj->ps_cali = offset;
+#ifdef MTK_OLD_FACTORY_CALIBRATION
+	err = sensor_set_cmd_to_hub(ID_PROXIMITY, CUST_ACTION_SET_CALI, &obj->ps_cali);
+	if(err < 0) {
+		pr_err("sensor_set_cmd_to_hub fail, (ID:%d), (action:%d)\n", ID_PROXIMITY, CUST_ACTION_RESET_CALI);
+		return -1;
+	}
+#endif
 	return 0;
 }
 static int pshub_factory_get_cali(int32_t *offset)

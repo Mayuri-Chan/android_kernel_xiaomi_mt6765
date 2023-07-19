@@ -1,6 +1,7 @@
 /* pkuphub motion sensor driver
  *
  * Copyright (C) 2016 MediaTek Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -82,6 +83,13 @@ static int pickup_gesture_batch(int flag,
 	return sensor_batch_to_hub(ID_PICK_UP_GESTURE,
 		flag, samplingPeriodNs, maxBatchReportLatencyNs);
 }
+/*2020.05.15 longcheer liushuwen add start for xiaomi patch in VTS pickup sensor */
+static int pickup_detect_flush(void)
+{
+	return situation_flush_report(ID_PICK_UP_GESTURE);
+}
+/*2020.05.15 longcheer liushuwen add end for xiaomi patch in VTS pickup sensor */
+
 static int pickup_gesture_recv_data(struct data_unit_t *event,
 	void *reserved)
 {
@@ -90,7 +98,8 @@ static int pickup_gesture_recv_data(struct data_unit_t *event,
 	if (event->flush_action == FLUSH_ACTION)
 		pr_debug("pickup_gesture do not support flush\n");
 	else if (event->flush_action == DATA_ACTION)
-		err = situation_notify(ID_PICK_UP_GESTURE);
+		err = situation_data_report(ID_PICK_UP_GESTURE,
+				(uint32_t)event->data[0]);
 	return err;
 }
 
@@ -102,6 +111,8 @@ static int pkuphub_local_init(void)
 
 	ctl.open_report_data = pickup_gesture_open_report_data;
 	ctl.batch = pickup_gesture_batch;
+	ctl.flush = pickup_detect_flush;
+    //2020.05.15 longcheer liushuwen add start for xiaomi patch in VTS pickup sensor
 	ctl.is_support_wake_lock = true;
 	err = situation_register_control_path(&ctl, ID_PICK_UP_GESTURE);
 	if (err) {

@@ -1,6 +1,7 @@
 /* SCP sensor hub driver
  *
  * Copyright (C) 2016 MediaTek Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -856,7 +857,7 @@ static void SCP_sensorHub_init_sensor_state(void)
 
 	mSensorState[SENSOR_TYPE_PICK_UP_GESTURE].sensorType =
 		SENSOR_TYPE_PICK_UP_GESTURE;
-	mSensorState[SENSOR_TYPE_PICK_UP_GESTURE].rate = SENSOR_RATE_ONESHOT;
+	mSensorState[SENSOR_TYPE_PICK_UP_GESTURE].rate = SENSOR_RATE_ONCHANGE;
 	mSensorState[SENSOR_TYPE_PICK_UP_GESTURE].timestamp_filter = false;
 
 	mSensorState[SENSOR_TYPE_WAKE_GESTURE].sensorType =
@@ -2088,6 +2089,15 @@ int sensor_set_cmd_to_hub(uint8_t sensorType,
 			len = offsetof(SCP_SENSOR_HUB_SET_CUST_REQ, custData)
 			    + sizeof(req.set_cust_req.getInfo);
 			break;
+/*2020.4.11 longcheer liushuwen add start for sar TX_POWER*/
+		case CUST_ACTION_SET_TRACE:
+			req.set_cust_req.setTrace.action =
+				CUST_ACTION_SET_TRACE;
+			req.set_cust_req.setTrace.trace = *((int32_t *) data);
+			len = offsetof(SCP_SENSOR_HUB_SET_CUST_REQ, custData)
+				+ sizeof(req.set_cust_req.setTrace);
+		break;
+ /*2020.4.11 longcheer liushuwen add end for sar TX_POWER*/
 		default:
 			return -1;
 		}

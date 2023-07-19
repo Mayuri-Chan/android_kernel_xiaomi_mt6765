@@ -20,6 +20,7 @@ obj-$(CONFIG_CUSTOM_KERNEL_SENSOR_FUSION)	+= sensorfusion/
 #obj-$(CONFIG_MTK_KERNEL_GEOFENCE) += geofence/
 obj-$(CONFIG_CUSTOM_KERNEL_BIOMETRIC_SENSOR) += biometric/
 obj-$(CONFIG_MTK_HIGH_FREQ_SENSOR) += high_freq_sensor/
+obj-$(CONFIG_CUSTOM_KERNEL_SENSOR_CAL) += sensor_cal/
 else
 obj-y += dummy.o
 endif

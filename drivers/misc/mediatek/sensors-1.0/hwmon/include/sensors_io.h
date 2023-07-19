@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2016 MediaTek Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -114,6 +115,7 @@ struct compat_biometric_threshold {
 
 #define ALSPS 0x84
 #define ALSPS_SET_PS_MODE _IOW(ALSPS, 0x01, int)
+#define ALSPS_GET_PS_MODE _IOR(ALSPS, 0x02, int)
 #define ALSPS_GET_PS_RAW_DATA _IOR(ALSPS, 0x04, int)
 #define ALSPS_SET_ALS_MODE _IOW(ALSPS, 0x05, int)
 #define ALSPS_GET_ALS_RAW_DATA _IOR(ALSPS, 0x08, int)
