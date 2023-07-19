@@ -2,6 +2,9 @@
 # Makefile for misc devices that really don't fit anywhere else.
 #
 
+# board id
+obj-y += board_id.o
+
 obj-$(CONFIG_IBM_ASM)		+= ibmasm/
 obj-$(CONFIG_AD525X_DPOT)	+= ad525x_dpot.o
 obj-$(CONFIG_AD525X_DPOT_I2C)	+= ad525x_dpot-i2c.o
@@ -64,6 +67,10 @@ lkdtm-$(CONFIG_LKDTM)		+= lkdtm_heap.o
 lkdtm-$(CONFIG_LKDTM)		+= lkdtm_perms.o
 lkdtm-$(CONFIG_LKDTM)		+= lkdtm_rodata_objcopy.o
 lkdtm-$(CONFIG_LKDTM)		+= lkdtm_usercopy.o
+
+obj-$(CONFIG_ANT_CHECK)		+= ant_check.o
+obj-$(CONFIG_ANT_CHECK_DIV)	+= ant_check_div.o
+obj-$(CONFIG_SIMTRAY_STATUS)	+= simtray.o
 
 CFLAGS_lkdtm_rodata.o		+= $(DISABLE_LTO)
 KCOV_INSTRUMENT_lkdtm_rodata.o	:= n
