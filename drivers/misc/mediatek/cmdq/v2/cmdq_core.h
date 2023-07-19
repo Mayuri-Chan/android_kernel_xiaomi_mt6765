@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2015 MediaTek Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -759,8 +760,6 @@ struct ContextStruct {
 
 	/* Resource manager information */
 	struct list_head resourceList; /* all resource list */
-
-	void *inst_check_buffer;
 
 #ifdef CMDQ_INSTRUCTION_COUNT
 	/* GCE instructions count information */

@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2015 MediaTek Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -150,17 +151,6 @@ static const struct file_operations cmdqDebugInstructionCountOp = {
 	.release = single_release,
 };
 #endif
-
-#if 0
-static u64 job_mapping_idx = 1;
-#endif
-static struct list_head job_mapping_list;
-struct cmdq_job_mapping_struct {
-	u64 id;
-	struct TaskStruct *job;
-	struct list_head list_entry;
-};
-static DEFINE_MUTEX(cmdq_job_mapping_list_mutex);
 
 static int cmdq_open(struct inode *pInode, struct file *pFile)
 {
@@ -363,13 +353,12 @@ cmdq_driver_process_read_address_request(struct cmdqReadAddressStruct *req_user)
 static long cmdq_driver_destroy_secure_medadata(
 	struct cmdqCommandStruct *pCommand)
 {
-#ifdef CMDQ_SECURE_PATH_SUPPORT
 	if (pCommand->secData.addrMetadatas) {
 		kfree(CMDQ_U32_PTR(pCommand->secData.addrMetadatas));
 		pCommand->secData.addrMetadatas =
 			(cmdqU32Ptr_t)(unsigned long)NULL;
 	}
-#endif
+
 	return 0;
 }
 
@@ -626,7 +615,8 @@ static long cmdq_ioctl(struct file *pFile, unsigned int code,
 	uint32_t userRegCount = 0;
 	/* backup value after task release */
 	uint32_t regCount = 0, regCountUserSpace = 0, regUserToken = 0;
-	struct cmdq_job_mapping_struct *mapping_job = NULL, *tmp = NULL;
+	int capBits = 0;
+
 #endif
 	switch (code) {
 #if 0
@@ -685,26 +675,8 @@ static long cmdq_ioctl(struct file *pFile, unsigned int code,
 		/* free secure path metadata */
 		cmdq_driver_destroy_secure_medadata(&job.command);
 
-		/* privateData can reset since it has passed to handle */
-		job.command.privateData = 0;
-
-		mapping_job = kzalloc(sizeof(*mapping_job), GFP_KERNEL);
-		if (!mapping_job)
-			return -ENOMEM;
-
 		if (status >= 0) {
-			INIT_LIST_HEAD(&mapping_job->list_entry);
-			mutex_lock(&cmdq_job_mapping_list_mutex);
-			if (job_mapping_idx == 0)
-				job_mapping_idx = 1;
-			mapping_job->id = job_mapping_idx;
-			job.hJob = job_mapping_idx;
-			job_mapping_idx++;
-			mapping_job->job = pTask;
-			list_add_tail(&mapping_job->list_entry,
-				&job_mapping_list);
-			mutex_unlock(&cmdq_job_mapping_list_mutex);
-
+			job.hJob = (unsigned long)pTask;
 			if (copy_to_user((void *)param, (void *)&job,
 					 sizeof(struct cmdqJobStruct))) {
 				CMDQ_ERR(
@@ -713,7 +685,6 @@ static long cmdq_ioctl(struct file *pFile, unsigned int code,
 			}
 		} else {
 			job.hJob = (unsigned long)NULL;
-			kfree(mapping_job);
 			return -EFAULT;
 		}
 		break;
@@ -724,27 +695,13 @@ static long cmdq_ioctl(struct file *pFile, unsigned int code,
 			return -EFAULT;
 		}
 
-		pTask = NULL;
 		/* verify job handle */
-		mutex_lock(&cmdq_job_mapping_list_mutex);
-		list_for_each_entry_safe(mapping_job, tmp, &job_mapping_list,
-			list_entry) {
-			if (mapping_job->id == jobResult.hJob) {
-				pTask = mapping_job->job;
-				CMDQ_MSG("find task:%p with id:%llx\n",
-					pTask, jobResult.hJob);
-				list_del(&mapping_job->list_entry);
-				kfree(mapping_job);
-				break;
-			}
-		}
-		mutex_unlock(&cmdq_job_mapping_list_mutex);
-
-		if (!pTask || !cmdqIsValidTaskPtr(pTask)) {
+		if (!cmdqIsValidTaskPtr(
+			(struct TaskStruct *)(unsigned long)jobResult.hJob)) {
 			CMDQ_ERR("invalid task ptr = 0x%llx\n", jobResult.hJob);
 			return -EFAULT;
 		}
-
+		pTask = (struct TaskStruct *)(unsigned long)jobResult.hJob;
 
 		/* utility service, fill the engine flag. */
 		/* this is required by MDP. */
@@ -1174,8 +1131,6 @@ static int cmdq_probe(struct platform_device *pDevice)
 #ifdef CMDQ_INSTRUCTION_COUNT
 	device_create_file(&pDevice->dev, &dev_attr_instruction_count_level);
 #endif
-
-	INIT_LIST_HEAD(&job_mapping_list);
 
 	mdp_limit_dev_create(pDevice);
 	CMDQ_MSG("CMDQ driver probe end\n");

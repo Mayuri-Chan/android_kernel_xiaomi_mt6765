@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2015 MediaTek Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -1075,6 +1076,12 @@ void cmdq_mdp_add_consume_item(void)
 	}
 }
 
+static s32 cmdq_mdp_copy_cmd_to_task(struct cmdqRecStruct *handle,
+	void *src, u32 size, bool user_space)
+{
+	return cmdq_pkt_copy_cmd(handle, src, size, user_space);
+}
+
 static void cmdq_mdp_store_debug(struct cmdqCommandStruct *desc,
 	struct cmdqRecStruct *handle)
 {
@@ -1135,9 +1142,9 @@ static s32 cmdq_mdp_setup_sec(struct cmdqCommandStruct *desc,
 			struct cmdqSecAddrMetadataStruct *addr;
 			const u32 cnt =
 				handle->pkt->cmd_buf_size / CMDQ_INST_SIZE;
+
 			memcpy(p_metadatas, CMDQ_U32_PTR(
-				desc->secData.addrMetadatas),
-				metadata_length);
+				desc->secData.addrMetadatas), metadata_length);
 			handle->secData.addrMetadatas =
 				(cmdqU32Ptr_t)(unsigned long)p_metadatas;
 
@@ -1294,7 +1301,7 @@ s32 cmdq_mdp_handle_flush(struct cmdqRecStruct *handle)
 	s32 status;
 
 	CMDQ_TRACE_FORCE_BEGIN("%s %llx\n", __func__, handle->engineFlag);
-	CMDQ_MSG("%s %llx\n", __func__, handle->engineFlag);
+	CMDQ_LOG("%s %llx\n", __func__, handle->engineFlag);
 	if (handle->profile_exec)
 		cmdq_pkt_perf_end(handle->pkt);
 
@@ -1306,7 +1313,7 @@ s32 cmdq_mdp_handle_flush(struct cmdqRecStruct *handle)
 #endif
 
 	/* finalize it */
-	CMDQ_MSG("%s finalize\n", __func__);
+	CMDQ_LOG("%s finalize\n", __func__);
 	handle->finalized = true;
 	cmdq_pkt_finalize(handle->pkt);
 
@@ -1314,7 +1321,7 @@ s32 cmdq_mdp_handle_flush(struct cmdqRecStruct *handle)
 	 * Task may flush directly if no engine conflict and no waiting task
 	 * holds same engines.
 	 */
-	CMDQ_MSG("%s flush impl\n", __func__);
+	CMDQ_LOG("%s flush impl\n", __func__);
 	status = cmdq_mdp_flush_async_impl(handle);
 	CMDQ_TRACE_FORCE_END();
 	return status;
@@ -1359,12 +1366,11 @@ s32 cmdq_mdp_flush_async(struct cmdqCommandStruct *desc, bool user_space,
 	if (desc->prop_size && desc->prop_addr &&
 		desc->prop_size < CMDQ_MAX_USER_PROP_SIZE) {
 		handle->prop_addr = kzalloc(desc->prop_size, GFP_KERNEL);
-
-		handle->prop_size = desc->prop_size;
 		if (handle->prop_addr) {
 			memcpy(handle->prop_addr,
 				(void *)CMDQ_U32_PTR(desc->prop_addr),
 				desc->prop_size);
+			handle->prop_size = desc->prop_size;
 		} else {
 			handle->prop_addr = NULL;
 			handle->prop_size = 0;
@@ -1375,14 +1381,20 @@ s32 cmdq_mdp_flush_async(struct cmdqCommandStruct *desc, bool user_space,
 	}
 
 	copy_size = desc->blockSize - 2 * CMDQ_INST_SIZE;
-	CMDQ_TRACE_FORCE_BEGIN("%s check copy %u\n", __func__, copy_size);
-	if (user_space && !cmdq_core_check_user_valid(
-		(void *)(unsigned long)desc->pVABase, copy_size, handle)) {
-		cmdq_task_destroy(handle);
-		CMDQ_TRACE_FORCE_END();
-		return -EFAULT;
+	if (copy_size > 0) {
+		err = cmdq_mdp_copy_cmd_to_task(handle,
+			(void *)(unsigned long)desc->pVABase,
+			copy_size, user_space);
+		if (err < 0) {
+			cmdq_task_destroy(handle);
+			CMDQ_TRACE_FORCE_END();
+			return err;
+		}
 	}
-	CMDQ_TRACE_FORCE_END();
+
+	if (user_space && !cmdq_core_check_user_valid(
+		(void *)(unsigned long)desc->pVABase, copy_size))
+		return -EFAULT;
 
 	if (desc->regRequest.count &&
 			desc->regRequest.count <= CMDQ_MAX_DUMP_REG_COUNT &&
@@ -1409,8 +1421,16 @@ s32 cmdq_mdp_flush_async(struct cmdqCommandStruct *desc, bool user_space,
 	cmdq_pkt_perf_end(handle->pkt);
 #endif
 
+	err = cmdq_mdp_copy_cmd_to_task(handle,
+		(void *)(unsigned long)desc->pVABase + copy_size,
+		2 * CMDQ_INST_SIZE, user_space);
+	if (err < 0) {
+		cmdq_task_destroy(handle);
+		CMDQ_SYSTRACE_END();
+		return err;
+	}
+
 	/* mark finalized since we copy it */
-	cmdq_pkt_finalize(handle->pkt);
 	handle->finalized = true;
 
 	/* assign handle for mdp */

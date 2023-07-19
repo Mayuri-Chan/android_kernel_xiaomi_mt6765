@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2015 MediaTek Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -843,17 +844,14 @@ s32 cmdq_driver_ioctl_async_job_exec(struct file *pf,
 	/* free secure path metadata */
 	cmdq_driver_destroy_secure_medadata(&job.command);
 
-	/* privateData can reset since it has passed to handle */
-	job.command.privateData = 0;
-
 	INIT_LIST_HEAD(&mapping_job->list_entry);
-	mutex_lock(&cmdq_job_mapping_list_mutex);
 	if (job_mapping_idx == 0)
 		job_mapping_idx = 1;
 	mapping_job->id = job_mapping_idx;
 	job.hJob = job_mapping_idx;
 	job_mapping_idx++;
 	mapping_job->job = handle;
+	mutex_lock(&cmdq_job_mapping_list_mutex);
 	list_add_tail(&mapping_job->list_entry, &job_mapping_list);
 	mutex_unlock(&cmdq_job_mapping_list_mutex);
 	CMDQ_MSG(
