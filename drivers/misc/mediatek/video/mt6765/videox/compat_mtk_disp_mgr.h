@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2015 MediaTek Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -49,6 +50,7 @@ struct compat_disp_input_config {
 	compat_uint_t src_alpha;
 	compat_uint_t dst_alpha;
 	compat_uint_t yuv_range;
+	compat_int_t dataspace;
 
 	compat_uint_t layer_rotation;
 	compat_uint_t layer_type;
@@ -65,6 +67,7 @@ struct compat_disp_input_config {
 	compat_uptr_t dirty_roi_addr;
 	compat_ushort_t dirty_roi_num;
 
+	compat_ushort_t src_v_pitch;
 	compat_ushort_t src_pitch;
 	compat_ushort_t src_offset_x, src_offset_y;
 	compat_ushort_t src_width, src_height;
@@ -83,6 +86,8 @@ struct compat_disp_input_config {
 	u8 identity;
 	u8 connected_type;
 	u8 ext_sel_layer;
+
+	u8 compress;
 };
 
 struct compat_disp_ccorr_config {
@@ -150,6 +155,10 @@ struct compat_disp_caps_info {
 	compat_uint_t rsz_list_length;
 	compat_uint_t rsz_in_max[2];
 	compat_int_t is_support_three_session;
+	compat_int_t lcm_color_mode;
+	compat_uint_t max_luminance;
+	compat_uint_t average_luminance;
+	compat_uint_t min_luminance;
 };
 
 
@@ -196,6 +205,8 @@ struct compat_disp_frame_cfg_t {
 	compat_uint_t user;
 	struct compat_disp_ccorr_config ccorr_config;
 	compat_int_t res_idx;
+	compat_uint_t hrt_weight;
+	compat_uint_t hrt_idx;
 };
 
 struct compat_disp_session_info {
@@ -210,6 +221,10 @@ struct compat_disp_session_info {
 	compat_uint_t vsyncFPS;
 	compat_uint_t physicalWidth;
 	compat_uint_t physicalHeight;
+	/* length: um, for more precise precision */
+	compat_uint_t physicalWidthUm;
+	compat_uint_t physicalHeightUm;
+	compat_uint_t density;
 	compat_uint_t isConnected;
 	compat_uint_t isHDCPSupported;
 	compat_uint_t isOVLDisabled;
@@ -232,6 +247,11 @@ struct compat_layer_config {
 	compat_uint_t dst_offset_x, dst_offset_y;
 	compat_uint_t dst_width, dst_height;
 	compat_int_t ext_sel_layer;
+	compat_uint_t src_offst_x, src_offset_y;
+	compat_uint_t src_width, src_height;
+	compat_uint_t layer_caps;
+	compat_uint_t clip;
+	u8 compress;
 };
 
 struct compat_disp_layer_info {
@@ -253,6 +273,9 @@ struct _compat_disp_layer_info {
 	compat_int_t gles_tail[2];
 	compat_int_t hrt_num;
 	compat_int_t res_idx;
+	compat_uint_t hrt_weight;
+	compat_uint_t hrt_idx;
+	compat_int_t active_config_id[2];
 };
 
 struct compat_disp_scenario_config_t {
