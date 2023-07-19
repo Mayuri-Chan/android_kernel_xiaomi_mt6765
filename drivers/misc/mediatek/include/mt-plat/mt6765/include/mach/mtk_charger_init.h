@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2017 MediaTek Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -24,7 +25,7 @@
 #define USB_CHARGER_CURRENT			500000	/* 500mA */
 #define AC_CHARGER_CURRENT			2050000
 #define AC_CHARGER_INPUT_CURRENT		3200000
-#define NON_STD_AC_CHARGER_CURRENT		500000
+#define NON_STD_AC_CHARGER_CURRENT		1000000
 #define CHARGING_HOST_CHARGER_CURRENT		650000
 #define APPLE_1_0A_CHARGER_CURRENT		650000
 #define APPLE_2_1A_CHARGER_CURRENT		800000
@@ -52,8 +53,8 @@
 /* Battery Temperature Protection */
 #define MIN_CHARGE_TEMPERATURE  0
 #define MIN_CHARGE_TEMPERATURE_PLUS_X_DEGREE	6
-#define MAX_CHARGE_TEMPERATURE  50
-#define MAX_CHARGE_TEMPERATURE_MINUS_X_DEGREE	47
+#define MAX_CHARGE_TEMPERATURE  60
+#define MAX_CHARGE_TEMPERATURE_MINUS_X_DEGREE	57
 
 /* pe */
 #define PE_ICHG_LEAVE_THRESHOLD 1000 /* mA */

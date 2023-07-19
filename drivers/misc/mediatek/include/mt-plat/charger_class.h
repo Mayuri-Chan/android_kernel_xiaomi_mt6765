@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2015 MediaTek Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -52,7 +53,7 @@ struct charger_device {
 struct charger_ops {
 	int (*suspend)(struct charger_device *dev, pm_message_t state);
 	int (*resume)(struct charger_device *dev);
-
+	int (*hiz_mode)(struct charger_device *dev, bool en);
 	/* cable plug in/out */
 	int (*plug_in)(struct charger_device *dev);
 	int (*plug_out)(struct charger_device *dev);
@@ -123,9 +124,17 @@ struct charger_ops {
 	int (*enable_otg)(struct charger_device *dev, bool en);
 	int (*enable_discharge)(struct charger_device *dev, bool en);
 	int (*set_boost_current_limit)(struct charger_device *dev, u32 uA);
+  int (*set_vbus_ovp_limit)(struct charger_device *dev, u32 uV);
 
 	/* charger type detection */
 	int (*enable_chg_type_det)(struct charger_device *dev, bool en);
+
+	/* HVDCP type detection */
+	int (*get_hvdcp_type)(struct charger_device *dev, u32 *type);
+	int (*get_hvdcp_dpdm_status)(struct charger_device *dev, bool *status);
+	int (*set_hvdcp_dpdm)(struct charger_device *dev);
+	int (*enable_hvdcp_det)(struct charger_device *dev, bool enable);
+	int (*check_hv_charging)(struct charger_device *dev);
 
 	/* run AICL */
 	int (*run_aicl)(struct charger_device *dev, u32 *uA);
@@ -188,6 +197,7 @@ static inline void *charger_get_data(
 
 extern int charger_dev_enable(struct charger_device *charger_dev, bool en);
 extern int charger_dev_is_enabled(struct charger_device *charger_dev, bool *en);
+extern int charger_dev_set_hizmode(struct charger_device *chg_dev, bool en);
 extern int charger_dev_plug_in(struct charger_device *charger_dev);
 extern int charger_dev_plug_out(struct charger_device *charger_dev);
 extern int charger_dev_set_charging_current(
@@ -236,6 +246,16 @@ extern int charger_dev_enable_powerpath(
 	struct charger_device *charger_dev, bool en);
 extern int charger_dev_enable_safety_timer(
 	struct charger_device *charger_dev, bool en);
+extern int charger_dev_get_hvdcp_type(
+	struct charger_device *chg_dev, u32 *type);
+extern int charger_dev_get_hvdcp_dpdm_status(
+	struct charger_device *chg_dev, bool *status);
+extern int charger_dev_set_hvdcp_dpdm(
+	struct charger_device *chg_dev);
+extern int charger_dev_enable_hvdcp_det(
+	struct charger_device *chg_dev, bool enable);
+extern int charger_dev_check_hv_charging(
+	struct charger_device *chg_dev);
 extern int charger_dev_enable_chg_type_det(
 	struct charger_device *charger_dev, bool en);
 extern int charger_dev_enable_otg(

@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2016 MediaTek Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -223,21 +224,21 @@
 
 /* using current to limit uisoc in 100% case*/
 /* UI_FULL_LIMIT_ITH0 3000 means 300ma */
-#define UI_FULL_LIMIT_EN 0
-#define UI_FULL_LIMIT_SOC0 9900
-#define UI_FULL_LIMIT_ITH0 2200
+#define UI_FULL_LIMIT_EN 1
+#define UI_FULL_LIMIT_SOC0 10000
+#define UI_FULL_LIMIT_ITH0 3500
 
-#define UI_FULL_LIMIT_SOC1 9900
-#define UI_FULL_LIMIT_ITH1 2200
+#define UI_FULL_LIMIT_SOC1 10000
+#define UI_FULL_LIMIT_ITH1 3500
 
-#define UI_FULL_LIMIT_SOC2 9900
-#define UI_FULL_LIMIT_ITH2 2200
+#define UI_FULL_LIMIT_SOC2 10000
+#define UI_FULL_LIMIT_ITH2 3500
 
-#define UI_FULL_LIMIT_SOC3 9900
-#define UI_FULL_LIMIT_ITH3 2200
+#define UI_FULL_LIMIT_SOC3 10000
+#define UI_FULL_LIMIT_ITH3 3500
 
-#define UI_FULL_LIMIT_SOC4 9900
-#define UI_FULL_LIMIT_ITH4 2200
+#define UI_FULL_LIMIT_SOC4 10000
+#define UI_FULL_LIMIT_ITH4 3500
 
 #define UI_FULL_LIMIT_TIME 99999
 
