@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2016 MediaTek Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -8319,7 +8320,7 @@ static long ISP_ioctl(struct file *pFile, unsigned int Cmd, unsigned long Param)
 		break;
 	#ifdef ENABLE_KEEP_ION_HANDLE
 	case ISP_ION_IMPORT:
-		pr_info("ISP_ION_IMPORT: %d\n", ISP_ION_IMPORT);
+		pr_devel("ISP_ION_IMPORT: %d\n", ISP_ION_IMPORT);
 		if (copy_from_user(&IonNode, (void *)Param,
 		    sizeof(struct ISP_DEV_ION_NODE_STRUCT)) == 0) {
 			struct T_ION_TBL *ptbl = NULL;
