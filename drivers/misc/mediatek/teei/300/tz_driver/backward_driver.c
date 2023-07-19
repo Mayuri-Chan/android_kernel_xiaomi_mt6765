@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2015-2017 MICROTRUST Incorporated
+ * Copyright (C) 2021 XiaoMi, Inc.
  * All Rights Reserved.
  *
  * This program is free software; you can redistribute it and/or
@@ -236,7 +237,7 @@ static int reetime_handle(struct service_handler *handler)
 
 	down(&smc_lock);
 
-	reetime_bdrv_ent = kmalloc(sizeof(struct bdrv_call_struct), GFP_KERNEL);
+	reetime_bdrv_ent = kmalloc(sizeof(struct bdrv_call_struct), GFP_ATOMIC);
 	reetime_bdrv_ent->handler = handler;
 	reetime_bdrv_ent->bdrv_call_type = REETIME_SYS_NO;
 
@@ -319,7 +320,7 @@ static int vfs_handle(struct service_handler *handler)
 						para_vaddr, buff_vaddr);
 
 	down(&smc_lock);
-	vfs_bdrv_ent = kmalloc(sizeof(struct bdrv_call_struct), GFP_KERNEL);
+	vfs_bdrv_ent = kmalloc(sizeof(struct bdrv_call_struct), GFP_ATOMIC);
 	vfs_bdrv_ent->handler = handler;
 	vfs_bdrv_ent->bdrv_call_type = VFS_SYS_NO;
 
