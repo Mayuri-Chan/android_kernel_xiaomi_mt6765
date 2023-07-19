@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2017 MediaTek Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -198,6 +199,8 @@ static char g_bind9[20] = "";
 #endif
 
 struct mt_gpufreq_power_table_info *mtk_gpu_power;
+/* max GPU opp idx from GPU DVFS driver, default is 0 */
+int gpu_max_opp;
 #if 0
 int Num_of_GPU_OPP = 1;		/* Set this value =1 for non-DVS GPU */
 #else				/* DVFS GPU */
@@ -318,6 +321,14 @@ mt_ppm_thermal_get_max_power(void)
 	pr_notice("E_WF: %s doesn't exist\n", __func__);
 	return 0;
 }
+
+	unsigned int  __attribute__((weak))
+mt_gpufreq_get_seg_max_opp_index(void)
+{
+	pr_notice("E_WF: %s doesn't exist\n", __func__);
+	return 0;
+}
+
 
 /*=============================================================*/
 long long thermal_get_current_time_us(void)
@@ -460,7 +471,14 @@ int mtk_gpufreq_register(struct mt_gpufreq_power_table_info *freqs, int num)
 				freqs[i].gpufreq_khz, freqs[i].gpufreq_power);
 	}
 
-	Num_of_GPU_OPP = num;	/* GPU OPP count */
+	gpu_max_opp = mt_gpufreq_get_seg_max_opp_index();
+	Num_of_GPU_OPP = gpu_max_opp + mt_gpufreq_get_dvfs_table_num();
+	/* error check */
+	if (gpu_max_opp >= num || Num_of_GPU_OPP > num || !Num_of_GPU_OPP) {
+		gpu_max_opp = 0;
+		Num_of_GPU_OPP = num;
+	}
+
 	return 0;
 }
 EXPORT_SYMBOL(mtk_gpufreq_register);

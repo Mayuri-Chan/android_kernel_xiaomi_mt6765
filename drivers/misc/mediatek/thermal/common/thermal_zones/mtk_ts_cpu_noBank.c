@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2017 MediaTek Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -31,6 +32,7 @@
 #include <linux/ktime.h>
 #include "mach/mtk_thermal.h"
 #include "mtk_thermal_timer.h"
+#include <mtk_ts_setting.h>
 
 #if defined(CONFIG_MTK_CLKMGR)
 #include <mach/mtk_clkmgr.h>
@@ -192,7 +194,8 @@ static char g_bind9[20] = "";
 #endif
 
 struct mt_gpufreq_power_table_info *mtk_gpu_power;
-
+/* max GPU opp idx from GPU DVFS driver, default is 0 */
+int gpu_max_opp;
 #if 0
 int Num_of_GPU_OPP = 1;		/* Set this value =1 for non-DVS GPU */
 #else				/* DVFS GPU */
@@ -331,6 +334,20 @@ mt_ppm_thermal_get_max_power(void)
 	return 0;
 }
 
+	unsigned int  __attribute__((weak))
+mt_gpufreq_get_seg_max_opp_index(void)
+{
+	pr_notice("E_WF: %s doesn't exist\n", __func__);
+	return 0;
+}
+
+	unsigned int  __attribute__((weak))
+mt_gpufreq_get_dvfs_table_num(void)
+{
+	pr_notice("E_WF: %s doesn't exist\n", __func__);
+	return 0;
+}
+
 /*=============================================================*/
 long long int thermal_get_current_time_us(void)
 {
@@ -395,8 +412,6 @@ int mtk_gpufreq_register(struct mt_gpufreq_power_table_info *freqs, int num)
 {
 	int i = 0;
 
-	tscpu_dprintk("%s\n", __func__);
-
 	mtk_gpu_power =
 		kzalloc((num) *
 			sizeof(struct mt_gpufreq_power_table_info), GFP_KERNEL);
@@ -408,11 +423,18 @@ int mtk_gpufreq_register(struct mt_gpufreq_power_table_info *freqs, int num)
 		mtk_gpu_power[i].gpufreq_khz = freqs[i].gpufreq_khz;
 		mtk_gpu_power[i].gpufreq_power = freqs[i].gpufreq_power;
 
-		tscpu_dprintk("[%d].gpufreq_khz=%u, .gpufreq_power=%u\n",
+		tscpu_printk("[%d].gpufreq_khz=%u, .gpufreq_power=%u\n",
 			i, freqs[i].gpufreq_khz, freqs[i].gpufreq_power);
 	}
 
-	Num_of_GPU_OPP = num;	/* GPU OPP count */
+	gpu_max_opp = mt_gpufreq_get_seg_max_opp_index();
+	Num_of_GPU_OPP = gpu_max_opp + mt_gpufreq_get_dvfs_table_num();
+	/* error check */
+	if (gpu_max_opp >= num || Num_of_GPU_OPP > num || !Num_of_GPU_OPP) {
+		gpu_max_opp = 0;
+		Num_of_GPU_OPP = num;
+	}
+
 	return 0;
 }
 EXPORT_SYMBOL(mtk_gpufreq_register);
