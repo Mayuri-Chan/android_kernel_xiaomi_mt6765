@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2015-2016 MediaTek Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  * Author: Yong Wu <yong.wu@mediatek.com>
  *
  * This program is free software; you can redistribute it and/or modify
@@ -83,6 +84,14 @@ enum mtk_smi_gen {
 struct mtk_smi_dev *common;
 struct mtk_smi_dev **larbs;
 
+#if IS_ENABLED(CONFIG_MACH_MT6765)
+#define SMI_INIT_AFTER_PROBE
+#endif
+#ifdef SMI_INIT_AFTER_PROBE
+static u32 nr_smi_dev;
+static struct platform_driver mtk_smi_larb_driver;
+static struct platform_driver mtk_smi_common_driver;
+#endif
 int mtk_smi_clk_ref_cnts_read(struct mtk_smi_dev *smi)
 {
 	/* check parameter */
@@ -564,6 +573,23 @@ static int mtk_smi_larb_probe(struct platform_device *pdev)
 	ret = component_add(&pdev->dev, &mtk_smi_larb_component_ops);
 	if (ret)
 		return ret;
+
+#ifdef SMI_INIT_AFTER_PROBE
+    nr_smi_dev += 1;
+    dev_dbg(&pdev->dev,
+        "common:%p index:%#x nr_smi_dev:%#x larb:%p index:%#x\n",
+        common, common->index, nr_smi_dev, larbs[index], index);
+    if (common && nr_smi_dev == common->index + 1) {
+        ret = smi_register(&mtk_smi_common_driver);
+        if (ret) {
+            dev_notice(&pdev->dev,
+                "Failed to register SMI-EXT driver: %d\n", ret);
+            platform_driver_unregister(&mtk_smi_larb_driver);
+            platform_driver_unregister(&mtk_smi_common_driver);
+            return ret;
+        }
+    }
+#endif
 	return ret;
 #else /* !CONFIG_MTK_SMI_EXT */
 	struct mtk_smi_larb *larb;
@@ -704,6 +730,10 @@ static int mtk_smi_common_probe(struct platform_device *pdev)
 		return -ENOMEM;
 	/* device set driver data */
 	platform_set_drvdata(pdev, common);
+
+	#ifdef SMI_INIT_AFTER_PROBE
+		nr_smi_dev += 1;
+	#endif
 	return ret;
 #else /* !CONFIG_MTK_SMI_EXT  */
 	struct device *dev = &pdev->dev;
@@ -786,6 +816,7 @@ static int __init mtk_smi_init(void)
 	}
 
 #if IS_ENABLED(CONFIG_MTK_SMI_EXT)
+#ifndef SMI_INIT_AFTER_PROBE
 	ret = smi_register(&mtk_smi_common_driver);
 	if (ret) {
 		pr_notice("Failed to register SMI-EXT driver\n");
@@ -793,6 +824,7 @@ static int __init mtk_smi_init(void)
 		platform_driver_unregister(&mtk_smi_common_driver);
 		return ret;
 	}
+#endif
 #endif
 	return ret;
 
