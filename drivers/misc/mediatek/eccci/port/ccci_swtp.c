@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2015 MediaTek Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -19,6 +20,7 @@
 #include <linux/of_irq.h>
 #include <linux/of_address.h>
 #include <linux/of_gpio.h>
+#include <linux/input.h>
 
 #include <mt-plat/mtk_boot_common.h>
 #include "ccci_debug.h"
@@ -34,6 +36,8 @@ const struct of_device_id swtp_of_match[] = {
 };
 #define SWTP_MAX_SUPPORT_MD 1
 struct swtp_t swtp_data[SWTP_MAX_SUPPORT_MD];
+
+struct input_dev *swtp_ipdev;
 
 static int switch_Tx_Power(int md_id, unsigned int mode)
 {
@@ -74,16 +78,29 @@ static int swtp_switch_mode(int irq, struct swtp_t *swtp)
 
 	spin_lock_irqsave(&swtp->spinlock, flags);
 	val = swtp->irq[0] == irq ? 0:1;
+	CCCI_LEGACY_ALWAYS_LOG(swtp->md_id, SYS, "%s val %d %d %d\n",
+		__func__, val, swtp->curr_mode[val], swtp->eint_type[val]);
 	if (swtp->curr_mode[val] == SWTP_EINT_PIN_PLUG_IN) {
 		if (swtp->eint_type[val] == IRQ_TYPE_LEVEL_HIGH)
 			irq_set_irq_type(swtp->irq[val], IRQ_TYPE_LEVEL_HIGH);
 		else
 			irq_set_irq_type(swtp->irq[val], IRQ_TYPE_LEVEL_LOW);
+		if(val == 0){
+			input_report_key(swtp_ipdev, KEY_ANT_CONNECT, 1);
+			input_report_key(swtp_ipdev, KEY_ANT_CONNECT, 0);
+			input_sync(swtp_ipdev);
+		}
 	} else {
 		if (swtp->eint_type[val] == IRQ_TYPE_LEVEL_HIGH)
 			irq_set_irq_type(swtp->irq[val], IRQ_TYPE_LEVEL_LOW);
 		else
 			irq_set_irq_type(swtp->irq[val], IRQ_TYPE_LEVEL_HIGH);
+
+		if(val == 0){
+			input_report_key(swtp_ipdev, KEY_ANT_UNCONNECT, 1);
+			input_report_key(swtp_ipdev, KEY_ANT_UNCONNECT, 0);
+			input_sync(swtp_ipdev);
+		}
 	}
 	swtp->curr_mode[val] = !swtp->curr_mode[val];
 
@@ -151,6 +168,8 @@ static irqreturn_t swtp_irq_func(int irq, void *data)
 	struct swtp_t *swtp = (struct swtp_t *)data;
 	int ret = 0;
 
+	pr_err("==== swtp_irq_func ====\n");
+
 	ret = swtp_switch_mode(irq, swtp);
 	if (ret < 0) {
 		CCCI_LEGACY_ERR_LOG(swtp->md_id, SYS,
@@ -204,6 +223,25 @@ int swtp_init(int md_id)
 	u32 ints1[4] = { 0, 0, 0, 0 };
 #endif
 
+/*input system config*/
+	swtp_ipdev = input_allocate_device();
+	if (!swtp_ipdev) {
+		pr_err("swtp_init: input_allocate_device fail\n");
+		return -1;
+	}
+	swtp_ipdev->name = "swtp-input";
+	input_set_capability(swtp_ipdev, EV_KEY, KEY_ANT_CONNECT);
+	input_set_capability(swtp_ipdev, EV_KEY, KEY_ANT_UNCONNECT);
+	input_set_capability(swtp_ipdev, EV_KEY, DIV_ANT_CONNECT);
+	input_set_capability(swtp_ipdev, EV_KEY, DIV_ANT_UNCONNECT);
+	//set_bit(INPUT_PROP_NO_DUMMY_RELEASE, ant_info->ipdev->propbit);
+	ret = input_register_device(swtp_ipdev);
+	if (ret) {
+		pr_err("swtp_init: input_register_device fail rc=%d\n", ret);
+		return -1;
+	}
+	pr_info("swtp_init: input_register_device success \n");
+
 	swtp_data[md_id].md_id = md_id;
 	spin_lock_init(&swtp_data[md_id].spinlock);
 	for (i = 0; i < 2; i++) {
@@ -249,6 +287,7 @@ int swtp_init(int md_id)
 	} else {
 		CCCI_LEGACY_ERR_LOG(md_id, SYS,
 			"%s can't find compatible node\n", __func__);
+		input_unregister_device(swtp_ipdev);
 		ret = -1;
 		}
 	}
