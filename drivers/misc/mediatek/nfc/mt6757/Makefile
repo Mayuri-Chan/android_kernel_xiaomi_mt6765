@@ -1,3 +1,0 @@
-
-obj-$(CONFIG_MTK_NFC_SUPPORT)   += mt6605.o
-ccflags-$(CONFIG_MTK_NFC_SUPPORT) +=  -DDEBUG
