@@ -120,3 +120,11 @@ config TS3A225E_ACCDET
 	  If you want to use TS3A225E
 	  say Y.
 	  If unsure, say N.
+
+config CUSTOM_HEADSET_FEATURE
+	bool "support HEADSET key multi function FEATURE"
+	help
+	  multi function
+	  If you want to use support
+	  say Y.
+	  If unsure, say N.

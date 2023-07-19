@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2017 MediaTek Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -36,6 +37,13 @@
 #define EINT_PIN_PLUG_OUT       (0)
 #define EINT_PIN_MOISTURE_DETECED (2)
 #define ANALOG_FASTDISCHARGE_SUPPORT
+
+/* 2020.4.1 longcheer puqirui add for headset button start */
+#ifdef CONFIG_CUSTOM_HEADSET_FEATURE
+#define MEDIA_PREVIOUS_SCAN_CODE 257
+#define MEDIA_NEXT_SCAN_CODE 258
+#endif
+/* 2020.4.1 longcheer puqirui add for headset button end */
 
 #ifdef CONFIG_ACCDET_EINT_IRQ
 enum pmic_eint_ID {
@@ -692,19 +700,45 @@ static void send_key_event(u32 keycode, u32 flag)
 {
 	switch (keycode) {
 	case DW_KEY:
+/* 2020.4.1 longcheer puqirui add for headset button start */
+#ifdef CONFIG_CUSTOM_HEADSET_FEATURE
+		input_report_key(accdet_input_dev, MEDIA_NEXT_SCAN_CODE, flag);
+#else
 		input_report_key(accdet_input_dev, KEY_VOLUMEDOWN, flag);
+#endif
 		input_sync(accdet_input_dev);
+#ifdef CONFIG_CUSTOM_HEADSET_FEATURE
+		pr_debug("accdet MEDIA_NEXT_SCAN_CODE %d\n", flag);
+#else
 		pr_debug("accdet KEY_VOLUMEDOWN %d\n", flag);
+#endif
 		break;
 	case UP_KEY:
+#ifdef CONFIG_CUSTOM_HEADSET_FEATURE
+		input_report_key(accdet_input_dev, MEDIA_PREVIOUS_SCAN_CODE, flag);
+#else
 		input_report_key(accdet_input_dev, KEY_VOLUMEUP, flag);
+#endif
 		input_sync(accdet_input_dev);
+#ifdef CONFIG_CUSTOM_HEADSET_FEATURE
+		pr_debug("accdet MEDIA_PREVIOUS_SCAN_CODE %d\n", flag);
+#else
 		pr_debug("accdet KEY_VOLUMEUP %d\n", flag);
+#endif
 		break;
 	case MD_KEY:
+#ifdef CONFIG_CUSTOM_HEADSET_FEATURE
+		input_report_key(accdet_input_dev, KEY_MEDIA, flag);
+#else
 		input_report_key(accdet_input_dev, KEY_PLAYPAUSE, flag);
+#endif
 		input_sync(accdet_input_dev);
+#ifdef CONFIG_CUSTOM_HEADSET_FEATURE
+		pr_debug("accdet KEY_MEDIA %d\n", flag);
+#else
 		pr_debug("accdet KEY_PLAYPAUSE %d\n", flag);
+#endif
+/* 2020.4.1 longcheer puqirui add for headset button end */
 		break;
 	case AS_KEY:
 		input_report_key(accdet_input_dev, KEY_VOICECOMMAND, flag);
@@ -1953,9 +1987,17 @@ int mt_accdet_probe(struct platform_device *dev)
 	}
 
 	__set_bit(EV_KEY, accdet_input_dev->evbit);
+/* 2020.4.1 longcheer puqirui add for headset button start */
+#ifdef CONFIG_CUSTOM_HEADSET_FEATURE
+	__set_bit(KEY_MEDIA, accdet_input_dev->keybit);
+	__set_bit(MEDIA_NEXT_SCAN_CODE, accdet_input_dev->keybit);
+	__set_bit(MEDIA_PREVIOUS_SCAN_CODE, accdet_input_dev->keybit);
+#else
 	__set_bit(KEY_PLAYPAUSE, accdet_input_dev->keybit);
 	__set_bit(KEY_VOLUMEDOWN, accdet_input_dev->keybit);
 	__set_bit(KEY_VOLUMEUP, accdet_input_dev->keybit);
+#endif
+/* 2020.4.1 longcheer puqirui add for headset button end */
 	__set_bit(KEY_VOICECOMMAND, accdet_input_dev->keybit);
 
 	__set_bit(EV_SW, accdet_input_dev->evbit);
