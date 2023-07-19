@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2017 MediaTek Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -36,13 +37,13 @@ bat_gm30: battery{
 	/*	power on system iboot*/
 	SHUTDOWN_GAUGE0_VOLTAGE = <(34000)>;
 	/*	shutdown gauge 0% voltage*/
-	TEMPERATURE_T0 = <(25)>;
+	TEMPERATURE_T0 = <(50)>;
 	/*	Battery temperature T1*/
-	TEMPERATURE_T1 = <(10)>;
+	TEMPERATURE_T1 = <(25)>;
 	/*	Battery temperature T2*/
-	TEMPERATURE_T2 = <(0)>;
+	TEMPERATURE_T2 = <(10)>;
 	/*	Battery temperature T3*/
-	TEMPERATURE_T3 = <(-10)>;
+	TEMPERATURE_T3 = <(0)>;
 	/*	Pseudo 100% percentage at T0.*/
 	g_FG_PSEUDO100_T0 = <(100)>;
 	/*	Pseudo 100% percentage at T1.*/

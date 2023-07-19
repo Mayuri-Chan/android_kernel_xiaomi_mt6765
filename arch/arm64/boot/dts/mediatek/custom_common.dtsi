@@ -166,6 +166,22 @@
 			output-high;
 		};
 	};
+
+	mtkfb_pins_tp_rst_out0: tp_rst_out0_gpio {
+		pins_cmd_dat {
+			pinmux = <PINMUX_GPIO174__FUNC_GPIO174>;
+			slew-rate = <1>;
+			output-low;
+		};
+	};
+	mtkfb_pins_tp_rst_out1: tp_rst_out1_gpio {
+		pins_cmd_dat {
+			pinmux = <PINMUX_GPIO174__FUNC_GPIO174>;
+			slew-rate = <1>;
+			output-high;
+		};
+	};
+
 	mtkfb_pins_default: dispdefault {
 	};
 };
@@ -175,7 +191,8 @@
 			"lcd_bias_enn0_gpio","lcd_bias_enn1_gpio",
 			"lcd_bl_out0_gpio","lcd_bl_out1_gpio",
 			"lcd_ldo18_out0_gpio","lcd_ldo18_out1_gpio",
-			"lcm_rst_out0_gpio","lcm_rst_out1_gpio";
+			"lcm_rst_out0_gpio","lcm_rst_out1_gpio",
+			"tp_rst_out0_gpio","tp_rst_out1_gpio";
 	pinctrl-0 = <&mtkfb_pins_default>;
 	pinctrl-1 = <&mtkfb_pins_lcd_bias_enp0>;
 	pinctrl-2 = <&mtkfb_pins_lcd_bias_enp1>;
@@ -187,6 +204,8 @@
 	pinctrl-8 = <&mtkfb_pins_lcd_ldo18_out1>;
 	pinctrl-9 = <&mtkfb_pins_lcm_rst_out0>;
 	pinctrl-10 = <&mtkfb_pins_lcm_rst_out1>;
+	pinctrl-11 = <&mtkfb_pins_tp_rst_out0>;
+	pinctrl-12 = <&mtkfb_pins_tp_rst_out1>;
 	status = "okay";
 };
 
@@ -219,8 +238,6 @@
 	};
 };
 /* TOUCH start */
-#include "touchscreen.dtsi"
-
 
 &touch {
 	tpd-resolution = <1080 1920>;
@@ -230,7 +247,7 @@
 	tpd-key-dim-local = <90 883 100 40 230
 				 883 100 40 370 883 100 40 0 0 0 0>;
 	tpd-max-touch-num = <10>;
-	tpd-filter-enable = <1>;
+	tpd-filter-enable = <0>;
 	tpd-filter-pixel-density = <146>;
 	tpd-filter-custom-prameters = <0 0 0 0 0 0 0 0 0 0 0 0>;
 	tpd-filter-custom-speed = <0 0 0>;
@@ -368,105 +385,6 @@
 	};
 };
 /* accdet end */
-
-/* FINGERPRINT start */
-/*
-&spi0 {
-	#address-cells = <1>;
-	#size-cells = <0>;
-	fingerprint@0 {
-		compatible = "goodix,goodix-fp";
-		reg = <0>;
-		spi-max-frequency = <8000000>;
-		netlink-event = <30>;
-		status = "okay";
-	};
-};
-
-&goodix_fp {
-	pinctrl-names = "default", "reset_high", "reset_low";
-	pinctrl-0 = <&fingerprint_default>;
-	pinctrl-1 = <&fingerprint_reset_high>;
-	pinctrl-2 = <&fingerprint_reset_low>;
-	status = "okay";
-};
-
-&pio {
-	fingerprint_default: state_default {
-	};
-	fingerprint_reset_high: state_reset_high {
-		pins_cmd_dat {
-			pinmux = <PINMUX_GPIO172__FUNC_GPIO172>;
-			slew-rate = <1>;
-			output-high;
-		};
-	};
-	fingerprint_reset_low: state_reset_low {
-		pins_cmd_dat {
-			pinmux = <PINMUX_GPIO172__FUNC_GPIO172>;
-			slew-rate = <1>;
-			output-low;
-		};
-	};
-};
-*/
-&spi1 {
-	#address-cells = <1>;
-	#size-cells = <0>;
-	fpc_tee@0 {
-		compatible = "fpc,fpc_spi";
-		reg = <0>;
-		fpc,enable-wakeup;
-		spi-max-frequency = <10000000>;
-		netlink-event = <31>;
-		status = "okay";
-	};
-
-};
-
-&fpsensor_finger {
-	pinctrl-names =  "fpsensor_fpc_rst_low", "fpsensor_fpc_rst_high","fpsensor_fpc_pwr_high", "fpsensor_fpc_pwr_low";
-	pinctrl-0 = <&fpsensor_fpc_rst_low>;
-	pinctrl-1 = <&fpsensor_fpc_rst_high>;
-	pinctrl-2 = <&fpsensor_fpc_pwr_high>;
-	pinctrl-3 = <&fpsensor_fpc_pwr_low>;
-	status = "okay";
-};
-
-&pio {
-	fpsensor_fpc_rst_low: fpsensor_fpc_rst_low {
-		pins_cmd_dat {
-			pinmux = <PINMUX_GPIO167__FUNC_GPIO167>;
-			slew-rate = <1>;
-			output-low;
-		};
-	};
-
-	fpsensor_fpc_rst_high: fpsensor_fpc_rst_high {
-		pins_cmd_dat {
-			pinmux = <PINMUX_GPIO167__FUNC_GPIO167>;
-			slew-rate = <1>;
-			output-high;
-		};
-	};
-
-	fpsensor_fpc_pwr_high: fpsensor_fpc_pwr_high {
-		pins_cmd_dat {
-			pinmux = <PINMUX_GPIO169__FUNC_GPIO169>;
-			slew-rate = <1>;
-			output-high;
-		};
-	};
-
-	fpsensor_fpc_pwr_low: fpsensor_fpc_pwr_low {
-		pins_cmd_dat {
-			pinmux = <PINMUX_GPIO169__FUNC_GPIO169>;
-			slew-rate = <1>;
-			output-low;
-		};
-	};
-};
-/* FINGERPRINT end */
 
 /* IRTX GPIO end */
 &irtx_pwm {
@@ -653,22 +571,22 @@
         reg = <0x6B>;
         ti,bq2560x,usb-vlim = <4600>;
         ti,bq2560x,usb-ilim = <500>;
-        ti,bq2560x,usb-vreg = <4368>;
+        ti,bq2560x,usb-vreg = <4400>;
         ti,bq2560x,usb-ichg = <500>;
         ti,bq2560x,precharge-current = <180>;
-        ti,bq2560x,termination-current = <180>;
+        ti,bq2560x,termination-current = <240>;
         ti,bq2560x,boost-voltage = <5150>;
         ti,bq2560x,boost-current = <1200>;
         ti,bq2560x,enable_term;
         ti,bq2560x,stat-pin-ctrl = <3>;
-        ti,bq2560x,vac-ovp-threshold = <10500>;
+        ti,bq2560x,vac-ovp-threshold = <6500>;
 
         cx,cx7601,usb-vlim = <4500>;
         cx,cx7601,usb-ilim = <500>;
         cx,cx7601,usb-vreg = <4400>;
         cx,cx7601,usb-ichg = <500>;
         cx,cx7601,precharge-current = <180>;
-        cx,cx7601,termination-current = <240>;
+        cx,cx7601,termination-current = <256>;
         cx,cx7601,boost-voltage = <5150>;
         cx,cx7601,boost-current = <1200>;
         cx,cx7601,enable_term;
@@ -689,6 +607,9 @@
 	mt6370pd,intr_gpio = <&pio 41 0x0>;
 };
 
-#include <k65v1_64_bsp/cust.dtsi>
+&thermal_message {
+	board-sensor = "VIRTUAL-SENSOR";
+};
+
 #include "cust_mt6765_camera.dtsi"
 /*End of this file, DO NOT ADD ANYTHING HERE*/
