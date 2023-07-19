@@ -1,6 +1,7 @@
 /* net/sched/sch_hhf.c		Heavy-Hitter Filter (HHF)
  *
  * Copyright (C) 2013 Terry Lam <vtlam@google.com>
+ * Copyright (C) 2021 XiaoMi, Inc.
  * Copyright (C) 2013 Nandita Dukkipati <nanditad@google.com>
  */
 

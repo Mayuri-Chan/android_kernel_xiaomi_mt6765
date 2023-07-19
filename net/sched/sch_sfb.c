@@ -2,6 +2,7 @@
  * net/sched/sch_sfb.c	  Stochastic Fair Blue
  *
  * Copyright (c) 2008-2011 Juliusz Chroboczek <jch@pps.jussieu.fr>
+ * Copyright (C) 2021 XiaoMi, Inc.
  * Copyright (c) 2011 Eric Dumazet <eric.dumazet@gmail.com>
  *
  * This program is free software; you can redistribute it and/or
@@ -22,7 +23,7 @@
 #include <linux/errno.h>
 #include <linux/skbuff.h>
 #include <linux/random.h>
-#include <linux/siphash.h>
+#include <linux/jhash.h>
 #include <net/ip.h>
 #include <net/pkt_sched.h>
 #include <net/inet_ecn.h>
