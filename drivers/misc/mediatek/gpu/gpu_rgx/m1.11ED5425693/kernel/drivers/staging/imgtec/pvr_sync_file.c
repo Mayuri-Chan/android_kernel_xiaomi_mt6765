@@ -431,6 +431,9 @@ pvr_sync_rollback_fence_data(PVRSRV_FENCE fence_to_rollback,
 	fput(sync_file->file);
 
 	put_unused_fd(fence_to_rollback);
+
+	pvr_fence_destroy(pvr_fence);
+
 	return PVRSRV_OK;
 }
 
