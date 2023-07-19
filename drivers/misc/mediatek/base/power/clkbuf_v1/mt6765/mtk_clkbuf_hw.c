@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2017 MediaTek Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -73,7 +74,14 @@ static void __iomem *pwrap_base;
 #define RG_XO4_MODE				0x3
 #define RG_XO6_MODE				0x0
 #define RG_XO7_MODE				0x0
-#define PMIC_CW00_INIT_VAL			0x4E1D
+
+/*2020.3.9 longcheer wangfajie add start, MTK dev suggest DCXO CWoo
+  reg config as 0x4EDD and it make xo_nfc bind to xo_wcn to fix a known
+  issue, open gps(xo_wcn) may be xo nfc clk.
+  */
+#define PMIC_CW00_INIT_VAL			0x4EDD
+/*2020.3.9 longcheer wangfajie add end*/
+
 #define PMIC_CW11_INIT_VAL			0x8000
 #define PMIC_CW15_INIT_VAL			0xA2AA
 
@@ -1241,9 +1249,13 @@ short is_clkbuf_bringup(void)
 
 void clk_buf_post_init(void)
 {
+/*2020.3.6 longcheer wangfajie add start, open nfc feature*/
+#ifndef CONFIG_NFC
 #ifndef CONFIG_NFC_CHIP_SUPPORT
 	/* no need to use XO_NFC if no NFC */
 	clk_buf_ctrl_internal(CLK_BUF_NFC, false);
 #endif
+#endif
+/*2020.3.6 longcheer wangfajie add end*/
 }
 
