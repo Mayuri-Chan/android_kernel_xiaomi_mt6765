@@ -10,6 +10,19 @@ config SUNWAVE_TEE_FINGERPRINT
     ---help---
     SW fingerprint chip.
 
+config FPC_FINGERPRINT
+	bool "FPC Fingerprint"
+	default n
+	help
+	  FPC fingerprint FPC's 102x/104x device.
+
+config FOCALTECH_FINGERPRINT
+    tristate "FOCALTECH Fingerprint"
+    default n
+    help
+    If you say Y to this option, support will be included for the focaltech's fingerprint sensor.
+    This driver supports both REE and TEE. If in REE, CONFIG_SPI_SPIDEV must be set to use the standard 'spidev' driver.
+
 config MTK_FINGERPRINT_SUPPORT
 	bool "Mediatek Fingerprint"
 	default n

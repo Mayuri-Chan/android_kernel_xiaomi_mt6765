@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2010 MediaTek, Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  *
  * Author: Terry Chang <terry.chang@mediatek.com>
  *
@@ -26,6 +27,10 @@
 #include <linux/clk.h>
 #include <linux/debugfs.h>
 
+#ifdef CONFIG_MTK_PMIC_NEW_ARCH
+#include <mt-plat/upmu_common.h>
+#endif
+
 #define KPD_NAME	"mtk-kpd"
 
 #ifdef CONFIG_LONG_PRESS_MODE_EN
@@ -40,6 +45,7 @@ struct input_dev *kpd_input_dev;
 static struct dentry *kpd_droot;
 static struct dentry *kpd_dklog;
 unsigned long call_status;
+unsigned long kpdpwr_status;
 static bool kpd_suspend;
 static unsigned int kp_irqnr;
 static u32 kpd_keymap[KPD_NUM_KEYS];
@@ -106,11 +112,63 @@ static ssize_t kpd_show_call_state(struct device_driver *ddri, char *buf)
 	return res;
 }
 
+/*2020.3.19 longcheer zhuqingliang add start*/
+/*add kpdpwr node*/
+static ssize_t kpdpwr_reset_store(struct device_driver *ddri,
+		const char *buf, size_t count)
+{
+	int ret;
+
+	ret = kstrtoul(buf, 10, &kpdpwr_status);
+	if (ret) {
+		kpd_print("kpd call state: Invalid values\n");
+		return -EINVAL;
+	}
+
+	pr_err("kpdpwr_reset_store kpdpwr_status = %d\n", kpdpwr_status);
+	if(kpdpwr_status){
+		pr_err("enable LPRST\n");
+		pmic_set_register_value(PMIC_RG_PWRKEY_RST_EN, 0x01);
+		pmic_set_register_value(PMIC_RG_HOMEKEY_RST_EN, 0x00);
+		pmic_set_register_value(PMIC_RG_PWRKEY_RST_TD,
+			CONFIG_KPD_PMIC_LPRST_TD);
+
+	}else{
+		pr_err("disable LPRST\n");
+		pmic_set_register_value(PMIC_RG_PWRKEY_RST_EN, 0x00);
+		pmic_set_register_value(PMIC_RG_HOMEKEY_RST_EN, 0x00);
+	}
+
+	return count;
+}
+
+static ssize_t kpdpwr_reset_show(struct device_driver *ddri, char *buf)
+{
+	ssize_t res;
+/*
+	long long reg_value;
+	reg_value = pmic_get_register_value(PMIC_RG_PWRKEY_RST_EN);
+	pr_err("kpdpwr_reset_show power = %lu\n", reg_value);
+
+	reg_value = pmic_get_register_value(PMIC_RG_HOMEKEY_RST_EN);
+	pr_err("kpdpwr_reset_show power = %lu\n", reg_value);
+
+	reg_value = pmic_get_register_value(PMIC_RG_PWRKEY_RST_TD);
+	pr_err("kpdpwr_reset_show power = %lu\n", reg_value);
+*/
+	res = snprintf(buf, PAGE_SIZE, "%ld\n", kpdpwr_status);
+	return res;
+}
+/*2020.3.19 longcheer zhuqingliang add end*/
+
 static DRIVER_ATTR(kpd_call_state, 0644, kpd_show_call_state,
 		kpd_store_call_state);
+static DRIVER_ATTR(kpdpwr_reset, 0664, kpdpwr_reset_show,
+		kpdpwr_reset_store);//2020.3.19 longcheer zhuqingliang add for add kpdpwr node
 
 static struct driver_attribute *kpd_attr_list[] = {
 	&driver_attr_kpd_call_state,
+	&driver_attr_kpdpwr_reset,//2020.3.19 longcheer zhuqingliang add for add kpdpwr node
 };
 
 static int kpd_create_attr(struct device_driver *driver)

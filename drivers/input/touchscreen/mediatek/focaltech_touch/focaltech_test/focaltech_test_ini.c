@@ -1,5 +1,6 @@
 /************************************************************************
 * Copyright (C) 2012-2015, Focaltech Systems (R)£¬All Rights Reserved.
+* Copyright (C) 2021 XiaoMi, Inc.
 *
 * File Name: focaltech_test_ini.c
 *
@@ -454,7 +455,7 @@ unsigned int fts_ic_table_get_ic_code_from_ic_name(char *strIcName)
 
     if (strncmp(strIcName, "FT8006U", 7) == 0) return IC_FT8006U;
 
-    printk("%s.  can NOT get ic code.  ERROR  !!!  \n", __func__);
+    pr_info("%s.  can NOT get ic code.  ERROR  !!!  \n", __func__);
 
     return 0xff;
 }
