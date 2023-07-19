@@ -24,7 +24,6 @@
 #include "inc/mt6370_pmu_debugfs.h"
 #include "inc/mt6370_pmu_dsv_debugfs.h"
 
-#define MT6370_PMU_DSV_DRV_VERSION	"1.0.1_MTK"
 
 struct mt6370_dsv_regulator_struct {
 	unsigned char vol_reg;
@@ -396,7 +395,7 @@ static inline int mt_parse_dt(struct device *dev,
 
 	if (of_property_read_u32(np, "db_vbst", &val) == 0) {
 		if (val >= 4000 && val <= 6200) {
-			mask->db_vbst.bitfield.vbst = 0x3F;
+			mask->db_vbst.bitfield.vbst = 0x3f;
 			pdata->db_vbst.bitfield.vbst = (val - 4000) / 50;
 		}
 	}
@@ -484,8 +483,7 @@ static int mt6370_pmu_dsv_probe(struct platform_device *pdev)
 	struct mt6370_pmu_dsv_platform_data pdata, mask;
 	int ret;
 
-	pr_info("%s: (%s)\n", __func__, MT6370_PMU_DSV_DRV_VERSION);
-
+	dev_info(&pdev->dev, "Probing....\n");
 	dsv_data = devm_kzalloc(&pdev->dev, sizeof(*dsv_data), GFP_KERNEL);
 	if (!dsv_data)
 		return -ENOMEM;
@@ -536,7 +534,8 @@ static int mt6370_pmu_dsv_probe(struct platform_device *pdev)
 	dev_info(&pdev->dev, "%s successfully\n", __func__);
 
 	mt6370_pmu_dsv_debug_init(dsv_data->chip);
-	return 0;
+
+	return ret;
 reg_apply_dts_fail:
 reg_dsvn_register_fail:
 	regulator_unregister(dsv_data->dsvp->regulator);
@@ -579,13 +578,4 @@ module_platform_driver(mt6370_pmu_dsv);
 
 MODULE_LICENSE("GPL v2");
 MODULE_DESCRIPTION("MediaTek MT6370 PMU DSV");
-MODULE_VERSION(MT6370_PMU_DSV_DRV_VERSION);
-
-/*
- * Release Note
- * 1.0.1_MTK
- * (1) Fix db_vbst upperbound to 6200mV
- *
- * 1.0.0_MTK
- * (1) Initial Release
- */
+MODULE_VERSION("1.0.1_G");
