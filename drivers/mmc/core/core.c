@@ -3146,6 +3146,8 @@ void mmc_init_erase(struct mmc_card *card)
 	if (mmc_card_sd(card) && card->ssr.au) {
 		card->pref_erase = card->ssr.au;
 		card->erase_shift = ffs(card->ssr.au) - 1;
+	} else if (card->ext_csd.hc_erase_size) {
+		card->pref_erase = card->ext_csd.hc_erase_size;
 	} else if (card->erase_size) {
 		sz = (card->csd.capacity << (card->csd.read_blkbits - 9)) >> 11;
 		if (sz < 128)
@@ -3998,6 +4000,7 @@ static int mmc_rescan_try_freq(struct mmc_host *host, unsigned freq)
 		mmc_hostname(host), __func__, host->f_init);
 #endif
 	mmc_power_up(host, host->ocr_avail);
+	mdelay(100); //2020.06.13 longcheer xugui add mmc_hw_reset_for_init 100ms
 
 	/*
 	 * Some eMMCs (with VCCQ always on) may not be reset after power up, so
