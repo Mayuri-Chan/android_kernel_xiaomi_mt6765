@@ -179,7 +179,7 @@ int vcu_ipi_register(struct platform_device *pdev, enum ipi_id id,
  **/
 int vcu_ipi_send(struct platform_device *pdev,
 				 enum ipi_id id, void *buf,
-				 unsigned int len, void *priv);
+				 unsigned int len);
 
 /**
  * vcu_get_plat_device - get VCU's platform device
