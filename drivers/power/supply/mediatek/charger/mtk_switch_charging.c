@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2016 MediaTek Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -158,7 +159,10 @@ static void swchg_select_charging_current_limit(struct charger_manager *info)
 
 	if (info->atm_enabled == true && (info->chr_type == STANDARD_HOST ||
 	    info->chr_type == CHARGING_HOST)) {
-		pdata->input_current_limit = 100000; /* 100mA */
+		/*2020.04.13 longcheer xugui set charging_current_limit start*/
+		pdata->input_current_limit = 500000; /* 500mA */
+		pdata->charging_current_limit = 500000;
+		/*2020.04.13 longcheer xugui set charging_current_limit end*/
 		goto done;
 	}
 
@@ -262,6 +266,8 @@ static void swchg_select_charging_current_limit(struct charger_manager *info)
 				info->data.apple_2_1a_charger_current;
 	}
 
+
+
 	if (info->enable_sw_jeita) {
 		if (IS_ENABLED(CONFIG_USBIF_COMPLIANCE)
 		    && info->chr_type == STANDARD_HOST)
@@ -269,10 +275,11 @@ static void swchg_select_charging_current_limit(struct charger_manager *info)
 		else {
 			if (info->sw_jeita.sm == TEMP_T0_TO_T1) {
 				pdata->input_current_limit = 500000;
-				pdata->charging_current_limit = 350000;
+				pdata->charging_current_limit = 540000;
 			}
 		}
 	}
+
 
 	if (pdata->thermal_charging_current_limit != -1) {
 		if (pdata->thermal_charging_current_limit <
@@ -336,8 +343,26 @@ done:
 
 	charger_dev_set_input_current(info->chg1_dev,
 					pdata->input_current_limit);
-	charger_dev_set_charging_current(info->chg1_dev,
-					pdata->charging_current_limit);
+
+	/*2020.03.16 longcheer wangbin edit start*/
+	/*set jeita current*/
+	if (info->enable_sw_jeita){
+		if (pdata->charging_current_limit <= info->sw_jeita.curr) {
+			charger_dev_set_charging_current(info->chg1_dev,
+						pdata->charging_current_limit);
+			chr_err("enable_sw_jeita,current=%d\n",
+			pdata->charging_current_limit);
+		} else {
+			charger_dev_set_charging_current(info->chg1_dev,
+						info->sw_jeita.curr);
+			chr_err("enable_sw_jeita,sw_jeita.curr=%d\n",
+			info->sw_jeita.curr);
+		}
+	} else {
+		charger_dev_set_charging_current(info->chg1_dev,
+			pdata->charging_current_limit);
+	}
+	/*2020.03.16 longcheer wangbin edit end*/
 
 	/* If AICR < 300mA, stop PE+/PE+20 */
 	if (pdata->input_current_limit < 300000) {

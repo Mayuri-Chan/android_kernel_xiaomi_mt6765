@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2016 MediaTek Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -33,6 +34,13 @@
 #include "bq25601.h"
 #include "mtk_charger_intf.h"
 #include <linux/power_supply.h>
+
+#undef pr_debug
+#define pr_debug pr_err
+#undef pr_info
+#define pr_info pr_err
+#undef dev_dbg
+#define dev_dbg dev_err
 
 /**********************************************************
  *
@@ -984,6 +992,7 @@ static int bq25601_set_current(struct charger_device *chg_dev,
 	//pr_info("&&&& charge_register_value = %d\n",register_value);
 	pr_info("&&&& %s register_value = %d\n", __func__,
 		register_value);
+	
 	bq25601_set_ichg(register_value);
 
 	return status;
@@ -1401,16 +1410,12 @@ static struct platform_driver bq25601_user_space_driver = {
 	},
 };
 
-#ifdef CONFIG_OF
+
 static const struct of_device_id bq25601_of_match[] = {
-	{.compatible = "mediatek,bq25601"},
+	{.compatible = "ti,bq25601"},
 	{},
 };
-#else
-static struct i2c_board_info i2c_bq25601 __initdata = {
-	I2C_BOARD_INFO("bq25601", (bq25601_SLAVE_ADDR_WRITE >> 1))
-};
-#endif
+
 
 static struct i2c_driver bq25601_driver = {
 	.driver = {

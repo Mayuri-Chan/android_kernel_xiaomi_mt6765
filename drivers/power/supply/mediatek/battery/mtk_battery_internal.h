@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2016 MediaTek Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -605,6 +606,7 @@ struct battery_data {
 	/* Add for Battery Service */
 	int BAT_batt_vol;
 	int BAT_batt_temp;
+	int BAT_TYPE;
 };
 
 struct BAT_EC_Struct {
@@ -966,6 +968,8 @@ extern void gm3_log_dump_nafg(int type);
 
 /* query function , review */
 extern struct BAT_EC_Struct *get_ec(void);
+
+extern void mtk_chaging_enable_write(int en);
 
 /* GM25 Plug out API */
 int en_intr_VBATON_UNDET(int en);

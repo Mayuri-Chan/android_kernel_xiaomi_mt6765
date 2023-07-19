@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2016 MediaTek Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -62,6 +63,7 @@
 #include <mt-plat/mtk_battery.h>
 #include <mt-plat/mtk_boot.h>
 #include <mt-plat/upmu_common.h>
+#include <mt-plat/mtk_auxadc_intf.h>
 #include <pmic_lbat_service.h>
 
 #include <mtk_gauge_class.h>
@@ -356,6 +358,7 @@ bool __attribute__ ((weak)) mt_usb_is_device(void)
 /* ============================================================ */
 /* custom setting */
 /* ============================================================ */
+extern int IMM_GetOneChannelValue_Cali(int Channel, int *voltage); 
 #ifdef MTK_GET_BATTERY_ID_BY_AUXADC
 void fgauge_get_profile_id(void)
 {
@@ -754,6 +757,8 @@ void fg_custom_init_from_header(void)
 			g_PON_SYS_IBOOT[i][gm.battery_id];
 		fg_table_cust_data.fg_profile[i].qmax_sys_vol =
 			g_QMAX_SYS_VOL[i][gm.battery_id];
+		bm_err("fg_table_cust_data.fg_profile[%d].qmax_sys_vol=%d\n",
+			 i,fg_table_cust_data.fg_profile[i].qmax_sys_vol);
 		/* shutdown_hl_zcv */
 		fg_table_cust_data.fg_profile[i].shutdown_hl_zcv =
 			g_SHUTDOWN_HL_ZCV[i][gm.battery_id];
@@ -775,6 +780,11 @@ void fg_custom_init_from_header(void)
 
 	if (IS_ENABLED(BAT_NTC_47)) {
 		gm.rbat.type = 47;
+		gm.rbat.rbat_pull_up_r = RBAT_PULL_UP_R;
+	}
+
+	if (IS_ENABLED(BAT_NTC_100)) {
+		gm.rbat.type = 100;
 		gm.rbat.rbat_pull_up_r = RBAT_PULL_UP_R;
 	}
 
@@ -886,7 +896,8 @@ void fg_custom_init_from_dts(struct platform_device *dev)
 {
 	struct device_node *np = dev->dev.of_node;
 	unsigned int val;
-	int bat_id, multi_battery, active_table, i, j, ret, column;
+	int bat_id, i, j, ret, column;
+	int multi_battery = 0,active_table = 0;
 	char node_name[128];
 
 	fgauge_get_profile_id();

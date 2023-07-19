@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2016 MediaTek Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -76,6 +77,16 @@ int charger_dev_is_enabled(struct charger_device *chg_dev, bool *en)
 	return -ENOTSUPP;
 }
 EXPORT_SYMBOL(charger_dev_is_enabled);
+
+int charger_dev_set_hizmode(struct charger_device *chg_dev, bool en)
+{
+	if (chg_dev != NULL && chg_dev->ops != NULL && chg_dev->ops->hiz_mode)
+		return chg_dev->ops->hiz_mode(chg_dev, en);
+
+	return -ENOTSUPP;
+}
+EXPORT_SYMBOL(charger_dev_set_hizmode);
+
 
 int charger_dev_plug_in(struct charger_device *chg_dev)
 {
@@ -531,6 +542,7 @@ int charger_dev_set_boost_current_limit(struct charger_device *chg_dev, u32 uA)
 	return -ENOTSUPP;
 }
 EXPORT_SYMBOL(charger_dev_set_boost_current_limit);
+
 
 int charger_dev_get_zcv(struct charger_device *chg_dev, u32 *uV)
 {

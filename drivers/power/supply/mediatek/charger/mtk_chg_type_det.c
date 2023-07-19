@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2016 MediaTek Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -55,6 +56,7 @@ void __attribute__((weak)) fg_charger_in_handler(void)
 	pr_notice("%s not defined\n", __func__);
 }
 
+#if 0
 struct chg_type_info {
 	struct device *dev;
 	struct charger_consumer *chg_consumer;
@@ -74,6 +76,7 @@ struct chg_type_info {
 	bool ignore_usb;
 	bool plugin;
 };
+#endif
 
 #ifdef CONFIG_FPGA_EARLY_PORTING
 /*  FPGA */
@@ -118,6 +121,7 @@ static void dump_charger_name(enum charger_type type)
 	}
 }
 
+#if 0
 /* Power Supply */
 struct mt_charger {
 	struct device *dev;
@@ -134,6 +138,7 @@ struct mt_charger {
 	bool chg_online; /* Has charger in or not */
 	enum charger_type chg_type;
 };
+#endif
 
 static int mt_charger_online(struct mt_charger *mtk_chg)
 {
@@ -253,10 +258,25 @@ static int mt_usb_get_property(struct power_supply *psy,
 {
 	struct mt_charger *mtk_chg = power_supply_get_drvdata(psy);
 
+  if (mtk_chg->chg_type == STANDARD_HOST){
+      mtk_chg->real_charger_type = POWER_SUPPLY_TYPE_USB;
+    }else if(mtk_chg->chg_type == STANDARD_CHARGER){
+      mtk_chg->real_charger_type = POWER_SUPPLY_TYPE_USB_DCP;
+      }else if(mtk_chg->chg_type ==CHARGING_HOST){
+      mtk_chg->real_charger_type = POWER_SUPPLY_TYPE_USB_CDP;
+     }else if(mtk_chg->chg_type == NONSTANDARD_CHARGER){
+      mtk_chg->real_charger_type = POWER_SUPPLY_TYPE_USB_FLOAT;
+      }else if(mtk_chg->chg_type == CHARGER_UNKNOWN){
+        mtk_chg->real_charger_type = POWER_SUPPLY_TYPE_UNKNOWN;
+        }else{
+          mtk_chg->real_charger_type = POWER_SUPPLY_TYPE_UNKNOWN;
+      }
 	switch (psp) {
 	case POWER_SUPPLY_PROP_ONLINE:
 		if ((mtk_chg->chg_type == STANDARD_HOST) ||
-			(mtk_chg->chg_type == CHARGING_HOST))
+			(mtk_chg->chg_type == CHARGING_HOST) ||
+			(mtk_chg->chg_type == STANDARD_CHARGER)||
+			(mtk_chg->chg_type == NONSTANDARD_CHARGER))
 			val->intval = 1;
 		else
 			val->intval = 0;
@@ -267,11 +287,97 @@ static int mt_usb_get_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_VOLTAGE_MAX:
 		val->intval = 5000000;
 		break;
+	case POWER_SUPPLY_PROP_REAL_TYPE:
+		val->intval = mtk_chg->real_charger_type;
+		break;
 	default:
 		return -EINVAL;
 	}
 
 	return 0;
+}
+
+static int fake_temp;
+static int mt_main_get_property(struct power_supply *psy,
+	enum power_supply_property psp, union power_supply_propval *val)
+{
+	struct mt_charger *mtk_chg = power_supply_get_drvdata(psy);
+	int vts, tchg_min, tchg_max;
+	u32 input_current_now, ibat_6360;
+
+	if (!mtk_chg->chg1_dev) {
+		mtk_chg->chg1_dev = get_charger_by_name("primary_chg");
+		if (mtk_chg->chg1_dev)
+			chr_err("Found primary charger [%s]\n",
+				mtk_chg->chg1_dev->props.alias_name);
+		else {
+			chr_err("*** Error : can't find primary charger ***\n");
+			return 0;
+		}
+	}
+
+	switch (psp) {
+	case POWER_SUPPLY_PROP_TYPE:
+		val->intval = POWER_SUPPLY_TYPE_MAINS;
+		break;
+	case POWER_SUPPLY_PROP_INPUT_CURRENT_NOW:
+		charger_dev_get_charging_current(mtk_chg->chg1_dev, &input_current_now);
+		val->intval = input_current_now;
+		break;
+	case POWER_SUPPLY_PROP_CURRENT_NOW:
+		charger_dev_get_adc(mtk_chg->chg1_dev, ADC_CHANNEL_IBAT, &ibat_6360, &ibat_6360);
+		val->intval = -ibat_6360;
+		break;
+	case POWER_SUPPLY_PROP_TEMP_MAX:
+		charger_dev_get_temperature(mtk_chg->chg1_dev, &tchg_min, &tchg_max);
+		if (!fake_temp)
+			val->intval = tchg_max;
+		else
+			val->intval = fake_temp;
+		break;
+	case POWER_SUPPLY_PROP_TEMP_MIN:
+		charger_dev_get_temperature(mtk_chg->chg1_dev, &tchg_min, &tchg_max);
+		val->intval = tchg_min;
+		break;
+	case POWER_SUPPLY_PROP_TEMP_CONNECT:
+		charger_dev_get_adc(mtk_chg->chg1_dev, ADC_CHANNEL_TS, &vts, &vts);
+		val->intval = vts;
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
+static int mt_main_set_property(struct power_supply *psy,
+	enum power_supply_property psp, const union power_supply_propval *val)
+{
+	switch (psp) {
+	case POWER_SUPPLY_PROP_TEMP_MAX:
+		fake_temp = val->intval;
+		return 0;
+	default:
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
+static int mt_main_is_writeable(struct power_supply *psy,
+				       enum power_supply_property prop)
+{
+	int rc;
+
+	switch (prop) {
+	case POWER_SUPPLY_PROP_TEMP_MAX:
+		rc = 1;
+		break;
+	default:
+		rc = 0;
+		break;
+	}
+	return rc;
 }
 
 static enum power_supply_property mt_charger_properties[] = {
@@ -286,6 +392,16 @@ static enum power_supply_property mt_usb_properties[] = {
 	POWER_SUPPLY_PROP_ONLINE,
 	POWER_SUPPLY_PROP_CURRENT_MAX,
 	POWER_SUPPLY_PROP_VOLTAGE_MAX,
+	POWER_SUPPLY_PROP_REAL_TYPE,
+};
+
+static enum power_supply_property mt_main_properties[] = {
+	POWER_SUPPLY_PROP_TYPE,
+	POWER_SUPPLY_PROP_INPUT_CURRENT_NOW,
+	POWER_SUPPLY_PROP_CURRENT_NOW,
+	POWER_SUPPLY_PROP_TEMP_MAX,
+	POWER_SUPPLY_PROP_TEMP_MIN,
+	POWER_SUPPLY_PROP_TEMP_CONNECT,
 };
 
 static void tcpc_power_off_work_handler(struct work_struct *work)
@@ -409,6 +525,7 @@ static int mt_charger_probe(struct platform_device *pdev)
 	mt_chg->dev = &pdev->dev;
 	mt_chg->chg_online = false;
 	mt_chg->chg_type = CHARGER_UNKNOWN;
+	mt_chg->chg1_dev = NULL;
 
 	mt_chg->chg_desc.name = "charger";
 	mt_chg->chg_desc.type = POWER_SUPPLY_TYPE_UNKNOWN;
@@ -417,6 +534,15 @@ static int mt_charger_probe(struct platform_device *pdev)
 	mt_chg->chg_desc.set_property = mt_charger_set_property;
 	mt_chg->chg_desc.get_property = mt_charger_get_property;
 	mt_chg->chg_cfg.drv_data = mt_chg;
+
+	mt_chg->main_desc.name = "main";
+	mt_chg->main_desc.type = POWER_SUPPLY_TYPE_MAINS;
+	mt_chg->main_desc.properties = mt_main_properties;
+	mt_chg->main_desc.num_properties = ARRAY_SIZE(mt_main_properties);
+	mt_chg->main_desc.get_property = mt_main_get_property;
+	mt_chg->main_desc.set_property = mt_main_set_property;
+	mt_chg->main_desc.property_is_writeable = mt_main_is_writeable;
+	mt_chg->main_cfg.drv_data = mt_chg;
 
 	mt_chg->ac_desc.name = "ac";
 	mt_chg->ac_desc.type = POWER_SUPPLY_TYPE_MAINS;
@@ -448,6 +574,15 @@ static int mt_charger_probe(struct platform_device *pdev)
 			PTR_ERR(mt_chg->ac_psy));
 		ret = PTR_ERR(mt_chg->ac_psy);
 		goto err_ac_psy;
+	}
+
+	mt_chg->main_psy = power_supply_register(&pdev->dev, &mt_chg->main_desc,
+		&mt_chg->main_cfg);
+	if (IS_ERR(mt_chg->main_psy)) {
+		dev_notice(&pdev->dev, "Failed to register power supply: %ld\n",
+			PTR_ERR(mt_chg->main_psy));
+		ret = PTR_ERR(mt_chg->main_psy);
+		goto err_main_psy;
 	}
 
 	mt_chg->usb_psy = power_supply_register(&pdev->dev, &mt_chg->usb_desc,
@@ -530,6 +665,8 @@ err_no_mem:
 	power_supply_unregister(mt_chg->usb_psy);
 err_usb_psy:
 	power_supply_unregister(mt_chg->ac_psy);
+err_main_psy:
+	power_supply_unregister(mt_chg->main_psy);
 err_ac_psy:
 	power_supply_unregister(mt_chg->chg_psy);
 	return ret;
@@ -543,6 +680,7 @@ static int mt_charger_remove(struct platform_device *pdev)
 	power_supply_unregister(mt_charger->chg_psy);
 	power_supply_unregister(mt_charger->ac_psy);
 	power_supply_unregister(mt_charger->usb_psy);
+	power_supply_unregister(mt_charger->main_psy);
 
 	pr_info("%s\n", __func__);
 	if (cti->chgdet_task) {
@@ -569,6 +707,7 @@ static int mt_charger_resume(struct device *dev)
 	power_supply_changed(mt_charger->chg_psy);
 	power_supply_changed(mt_charger->ac_psy);
 	power_supply_changed(mt_charger->usb_psy);
+	power_supply_changed(mt_charger->main_psy);
 
 	return 0;
 }

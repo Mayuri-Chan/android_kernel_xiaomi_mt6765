@@ -1,5 +1,6 @@
 /*
 * Copyright (C) 2016 MediaTek Inc.
+* Copyright (C) 2021 XiaoMi, Inc.
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License version 2 as
@@ -69,7 +70,6 @@
 #include <pmic_lbat_service.h>
 
 
-
 /* ============================================================ */
 /* define */
 /* ============================================================ */
@@ -113,6 +113,7 @@ static bool g_ADC_Cali;
 static enum power_supply_property battery_props[] = {
 	POWER_SUPPLY_PROP_STATUS,
 	POWER_SUPPLY_PROP_HEALTH,
+	POWER_SUPPLY_PROP_BATTERY_TYPE,
 	POWER_SUPPLY_PROP_PRESENT,
 	POWER_SUPPLY_PROP_TECHNOLOGY,
 	POWER_SUPPLY_PROP_CYCLE_COUNT,
@@ -123,6 +124,12 @@ static enum power_supply_property battery_props[] = {
 	POWER_SUPPLY_PROP_CHARGE_FULL,
 	POWER_SUPPLY_PROP_CHARGE_COUNTER,
 	POWER_SUPPLY_PROP_TEMP,
+	POWER_SUPPLY_PROP_CHARGING_ENABLED,
+	POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN,
+	POWER_SUPPLY_PROP_RESISTANCE_ID,
+	POWER_SUPPLY_PROP_SYSTEM_TEMP_LEVEL,
+	POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT,
+	POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT_MAX,
 };
 
 /* weak function */
@@ -218,8 +225,6 @@ bool is_fg_disabled(void)
 	return gm.disableGM30;
 }
 
-
-
 int register_battery_notifier(struct notifier_block *nb)
 {
 	int ret = 0;
@@ -302,11 +307,67 @@ void battery_update_psd(struct battery_data *bat_data)
 	bat_data->BAT_batt_temp = battery_get_bat_temperature();
 }
 
+static int battery_set_property(struct power_supply *psy,
+	enum power_supply_property psp,
+	const union power_supply_propval *val)
+{
+	int ret = 0;
+	switch (psp) {
+	case POWER_SUPPLY_PROP_CHARGING_ENABLED:
+		mtk_chaging_enable_write(val->intval);
+		break;
+	case POWER_SUPPLY_PROP_SYSTEM_TEMP_LEVEL:
+		charger_manager_set_prop_system_temp_level(val->intval);
+		break;
+	case POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT:
+		charger_manager_set_prop_system_temp_level(val->intval);
+		break;
+	default:
+		ret = -EINVAL;
+		break;
+	}
+	return ret;
+}
+
+static int battery_is_writeable(struct power_supply *psy,
+	enum power_supply_property psp)
+{
+	int ret;
+	switch (psp) {
+	case POWER_SUPPLY_PROP_CHARGING_ENABLED:
+		ret = 1;
+		break;
+	default:
+		ret = 0;
+		break;
+	}
+	return ret;
+}
+
+extern int IMM_GetOneChannelValue_Cali(int Channel, int *voltage);
+#define BATTERY_ID_CHANNEL_NUM 2
+static int get_battery_type(void)
+{
+	int id_volt = 0;
+
+	IMM_GetOneChannelValue_Cali(BATTERY_ID_CHANNEL_NUM , &id_volt);
+
+	if(id_volt > 1000000 && id_volt < 1300000)
+		return POWER_SUPPLY_BATTERY_TYPE_SLAVE;
+	else if (id_volt > 400000 && id_volt < 600000)
+		return POWER_SUPPLY_BATTERY_TYPE_MAIN;
+	else
+		return POWER_SUPPLY_BATTERY_TYPE_UNKNOWN;
+
+	return POWER_SUPPLY_BATTERY_TYPE_UNKNOWN;
+}
+
 static int battery_get_property(struct power_supply *psy,
 	enum power_supply_property psp,
 	union power_supply_propval *val)
 {
 	int ret = 0;
+	int id_volt = 0;
 	int fgcurrent = 0;
 	bool b_ischarging = 0;
 
@@ -361,7 +422,31 @@ static int battery_get_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_TEMP:
 		val->intval = gm.tbat_precise;
 		break;
-
+	case POWER_SUPPLY_PROP_CHARGING_ENABLED:
+	if (data->BAT_STATUS == POWER_SUPPLY_STATUS_CHARGING)
+		val->intval = 1;
+	else
+		val->intval = 0;
+		break;
+	case POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN:
+		val->intval = 5000;
+		break;
+	case POWER_SUPPLY_PROP_RESISTANCE_ID:
+	ret = IMM_GetOneChannelValue_Cali(BATTERY_ID_CHANNEL_NUM , &id_volt);
+		val->intval = id_volt;
+		break;
+	case POWER_SUPPLY_PROP_SYSTEM_TEMP_LEVEL:
+		val->intval = charger_manager_get_prop_system_temp_level();
+		break;
+	case POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT:
+		val->intval = charger_manager_get_prop_system_temp_level();
+		break;
+	case POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT_MAX:
+		val->intval = charger_manager_get_prop_system_temp_level_max();
+		break;
+	case POWER_SUPPLY_PROP_BATTERY_TYPE:
+		val->intval = get_battery_type();
+		break;
 	default:
 		ret = -EINVAL;
 		break;
@@ -378,12 +463,15 @@ struct battery_data battery_main = {
 		.properties = battery_props,
 		.num_properties = ARRAY_SIZE(battery_props),
 		.get_property = battery_get_property,
+		.set_property = battery_set_property,
+		.property_is_writeable = battery_is_writeable,
 		},
 
 	.BAT_STATUS = POWER_SUPPLY_STATUS_DISCHARGING,
 	.BAT_HEALTH = POWER_SUPPLY_HEALTH_GOOD,
+	.BAT_TYPE = POWER_SUPPLY_BATTERY_TYPE_UNKNOWN,
 	.BAT_PRESENT = 1,
-	.BAT_TECHNOLOGY = POWER_SUPPLY_TECHNOLOGY_LION,
+	.BAT_TECHNOLOGY = POWER_SUPPLY_TECHNOLOGY_LIPO,
 	.BAT_CAPACITY = -1,
 	.BAT_batt_vol = 0,
 	.BAT_batt_temp = 0,
@@ -393,8 +481,9 @@ void evb_battery_init(void)
 {
 	battery_main.BAT_STATUS = POWER_SUPPLY_STATUS_FULL;
 	battery_main.BAT_HEALTH = POWER_SUPPLY_HEALTH_GOOD;
+	battery_main.BAT_TYPE = POWER_SUPPLY_BATTERY_TYPE_UNKNOWN;
 	battery_main.BAT_PRESENT = 1;
-	battery_main.BAT_TECHNOLOGY = POWER_SUPPLY_TECHNOLOGY_LION;
+	battery_main.BAT_TECHNOLOGY = POWER_SUPPLY_TECHNOLOGY_LIPO;
 	battery_main.BAT_CAPACITY = 100;
 	battery_main.BAT_batt_vol = 4200;
 	battery_main.BAT_batt_temp = 22;
@@ -452,8 +541,28 @@ void battery_update(struct battery_data *bat_data)
 	struct power_supply *bat_psy = bat_data->psy;
 
 	battery_update_psd(&battery_main);
-	bat_data->BAT_TECHNOLOGY = POWER_SUPPLY_TECHNOLOGY_LION;
-	bat_data->BAT_HEALTH = POWER_SUPPLY_HEALTH_GOOD;
+	bat_data->BAT_TECHNOLOGY = POWER_SUPPLY_TECHNOLOGY_LIPO;
+	if(gm.tbat_precise >= 600)
+	{
+		bat_data->BAT_HEALTH = POWER_SUPPLY_HEALTH_OVERHEAT;
+	}
+	else if( gm.tbat_precise >= 500 && gm.tbat_precise < 600)
+	{
+		bat_data->BAT_HEALTH = POWER_SUPPLY_HEALTH_WARM;
+	}
+	else if( gm.tbat_precise >= 150 && gm.tbat_precise < 500)
+	{
+		bat_data->BAT_HEALTH = POWER_SUPPLY_HEALTH_GOOD;
+	}
+	else if( gm.tbat_precise >= 0 && gm.tbat_precise < 150)
+	{
+		bat_data->BAT_HEALTH = POWER_SUPPLY_HEALTH_COOL;
+	}
+	else if(gm.tbat_precise < 0)
+	{
+		bat_data->BAT_HEALTH = POWER_SUPPLY_HEALTH_COLD;
+	}
+	//bat_data->BAT_HEALTH = POWER_SUPPLY_HEALTH_GOOD;
 	bat_data->BAT_PRESENT = 1;
 
 #if defined(CONFIG_MTK_DISABLE_GAUGE)
@@ -1484,7 +1593,7 @@ int force_get_tbat_internal(bool update)
 			if (((dtime.tv_sec <= 20) &&
 				(abs(pre_bat_temperature_val2 -
 				bat_temperature_val) >= 50)) ||
-				bat_temperature_val >= 580) {
+				bat_temperature_val >= 630) {
 				bm_err(
 				"[force_get_tbat][err] current:%d,%d,%d,%d,%d,%d pre:%d,%d,%d,%d,%d,%d\n",
 					bat_temperature_volt_temp,
@@ -1591,7 +1700,6 @@ int force_get_tbat(bool update)
 	gm.ntc_disable_nafg = false;
 	bm_debug("[%s] t:%d precise:%d\n", __func__,
 		bat_temperature_val, gm.tbat_precise);
-
 	return bat_temperature_val;
 #endif
 }
@@ -3484,7 +3592,18 @@ static int battery_callback(
 	case CHARGER_NOTIFY_EOC:
 		{
 /* CHARGING FULL */
+			if (battery_main.BAT_HEALTH == POWER_SUPPLY_HEALTH_WARM ||
+				battery_main.BAT_HEALTH == POWER_SUPPLY_HEALTH_OVERHEAT)
+			{
+			fg_sw_bat_cycle_accu();
+			battery_main.BAT_STATUS = POWER_SUPPLY_STATUS_CHARGING;
+			battery_update(&battery_main);
+			}else{
 			notify_fg_chr_full();
+			fg_sw_bat_cycle_accu();
+			battery_main.BAT_STATUS = POWER_SUPPLY_STATUS_FULL;
+			battery_update(&battery_main);
+			}
 		}
 		break;
 	case CHARGER_NOTIFY_START_CHARGING:
