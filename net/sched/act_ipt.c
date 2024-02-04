@@ -394,7 +394,7 @@ static void __net_exit xt_exit_net(struct net *net)
 	tc_action_net_exit(tn);
 }
 
-static struct pernet_operations xt_net_ops = {
+static struct pernet_operations __refdata xt_net_ops = {
 	.init = xt_init_net,
 	.exit = xt_exit_net,
 	.id   = &xt_net_id,

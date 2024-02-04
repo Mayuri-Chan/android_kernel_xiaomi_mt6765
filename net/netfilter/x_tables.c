@@ -1715,7 +1715,7 @@ static int __net_init xt_net_init(struct net *net)
 	return 0;
 }
 
-static struct pernet_operations xt_net_ops = {
+static struct pernet_operations __refdata xt_net_ops = {
 	.init = xt_net_init,
 };
 
