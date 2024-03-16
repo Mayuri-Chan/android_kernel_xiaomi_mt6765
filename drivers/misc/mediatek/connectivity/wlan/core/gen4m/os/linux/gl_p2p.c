@@ -293,82 +293,6 @@ mtk_cfg80211_default_mgmt_stypes[NUM_NL80211_IFTYPES] = {
 #endif
 #endif
 
-static const struct iw_priv_args rP2PIwPrivTable[] = {
-	{
-	 .cmd = IOC_P2P_CFG_DEVICE,
-	 .set_args = IW_PRIV_TYPE_BYTE
-				| (__u16) sizeof(struct iw_p2p_cfg_device_type),
-	 .get_args = IW_PRIV_TYPE_NONE,
-	 .name = "P2P_CFG_DEVICE"}
-	,
-	{
-	 .cmd = IOC_P2P_START_STOP_DISCOVERY,
-	 .set_args = IW_PRIV_TYPE_BYTE
-				| (__u16) sizeof(struct iw_p2p_req_device_type),
-	 .get_args = IW_PRIV_TYPE_NONE,
-	 .name = "P2P_DISCOVERY"}
-	,
-	{
-	 .cmd = IOC_P2P_DISCOVERY_RESULTS,
-	 .set_args = IW_PRIV_TYPE_NONE,
-	 .get_args = IW_PRIV_TYPE_NONE,
-	 .name = "P2P_RESULT"}
-	,
-	{
-	 .cmd = IOC_P2P_WSC_BEACON_PROBE_RSP_IE,
-	 .set_args = IW_PRIV_TYPE_BYTE
-				| (__u16) sizeof(struct iw_p2p_hostapd_param),
-	 .get_args = IW_PRIV_TYPE_NONE,
-	 .name = "P2P_WSC_IE"}
-	,
-	{
-	 .cmd = IOC_P2P_CONNECT_DISCONNECT,
-	 .set_args = IW_PRIV_TYPE_BYTE
-				| (__u16) sizeof(struct iw_p2p_connect_device),
-	 .get_args = IW_PRIV_TYPE_NONE,
-	 .name = "P2P_CONNECT"}
-	,
-	{
-	 .cmd = IOC_P2P_PASSWORD_READY,
-	 .set_args = IW_PRIV_TYPE_BYTE
-				| (__u16) sizeof(struct iw_p2p_password_ready),
-	 .get_args = IW_PRIV_TYPE_NONE,
-	 .name = "P2P_PASSWD_RDY"}
-	,
-	{
-	 .cmd = IOC_P2P_GET_STRUCT,
-	 .set_args = IW_PRIV_TYPE_NONE,
-	 .get_args = 256,
-	 .name = "P2P_GET_STRUCT"}
-	,
-	{
-	 .cmd = IOC_P2P_SET_STRUCT,
-	 .set_args = 256,
-	 .get_args = IW_PRIV_TYPE_NONE,
-	 .name = "P2P_SET_STRUCT"}
-	,
-	{
-	 .cmd = IOC_P2P_GET_REQ_DEVICE_INFO,
-	 .set_args = IW_PRIV_TYPE_NONE,
-	 .get_args = IW_PRIV_TYPE_BYTE
-				| (__u16) sizeof(struct iw_p2p_device_req),
-	 .name = "P2P_GET_REQDEV"}
-	,
-	{
-	 /* SET STRUCT sub-ioctls commands */
-	 .cmd = PRIV_CMD_OID,
-	 .set_args = 256,
-	 .get_args = IW_PRIV_TYPE_NONE,
-	 .name = "set_oid"}
-	,
-	{
-	 /* GET STRUCT sub-ioctls commands */
-	 .cmd = PRIV_CMD_OID,
-	 .set_args = IW_PRIV_TYPE_NONE,
-	 .get_args = 256,
-	 .name = "get_oid"}
-};
-
 #if 0
 const struct iw_handler_def mtk_p2p_wext_handler_def = {
 	.num_standard = (__u16) sizeof(rP2PIwStandardHandler)
@@ -384,12 +308,6 @@ const struct iw_handler_def mtk_p2p_wext_handler_def = {
 #else
 	.get_wireless_stats = NULL,
 #endif
-};
-#endif
-
-#ifdef CONFIG_PM
-static const struct wiphy_wowlan_support mtk_p2p_wowlan_support = {
-	.flags = WIPHY_WOWLAN_DISCONNECT | WIPHY_WOWLAN_ANY,
 };
 #endif
 

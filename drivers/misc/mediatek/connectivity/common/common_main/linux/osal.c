@@ -354,7 +354,7 @@ INT32 osal_thread_create(P_OSAL_THREAD pThread)
 	if (!pThread)
 		return -1;
 
-	pThread->pThread = kthread_create(pThread->pThreadFunc, pThread->pThreadData, pThread->threadName);
+	pThread->pThread = kthread_create(pThread->pThreadFunc, pThread->pThreadData, "%s", pThread->threadName);
 	if (pThread->pThread == NULL)
 		return -1;
 

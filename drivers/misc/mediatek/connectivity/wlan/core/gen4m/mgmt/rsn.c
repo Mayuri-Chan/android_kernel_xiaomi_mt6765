@@ -893,8 +893,7 @@ u_int8_t rsnPerformPolicySelection(
 		 * ignore this BSS.
 		 */
 		return FALSE;
-	} else if (eEncStatus ==
-		   ENUM_ENCRYPTION1_ENABLED) {
+	} else {
 		/* If the driver is configured to use WEP only, use this BSS. */
 		DBGLOG(RSN, INFO, "-- WEP-only legacy BSS\n");
 		return TRUE;
